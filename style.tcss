@@ -1,0 +1,123 @@
+.app-grid {
+    layout: grid;
+    grid-size: 3;  /* three columns */
+    grid-columns: 1fr;
+    grid-rows: 1fr;
+    grid-gutter: 1;
+}
+.app-grid-printer {
+    layout: grid;
+    grid-size: 3;  /* two columns */
+    grid-columns: 1fr;
+    grid-rows: 1fr;
+}
+
+.app-grid-2 {
+    layout: grid;
+    grid-size: 4;  /* 4 columns 2 rows */
+    grid-columns: 1fr;
+    grid-rows: 1fr;
+    grid-gutter: 1;
+}
+
+.features > Static {
+    overflow-y: auto;
+    background: $boost;
+    color: auto;
+    margin-bottom: 1;
+    padding: 1;
+}
+.features {
+    width: 100%;
+    height: 100%;
+    column-span: 2;
+    background: $panel;
+    border: #272635;
+}
+
+
+.event-text {
+    overflow-x: auto;
+    overflow-y: auto;
+    height: 100%;
+    column-span: 2;
+    row-span: 2;
+    background: $panel;
+    border: rgb(0, 40, 100);
+    
+}
+
+.event-text > Static {
+    overflow-x: auto;
+    overflow-y: auto;
+    width: auto;
+    height: auto;
+    margin-right: 1;
+    background: $boost;
+    
+}
+
+.event-text-2 {
+    overflow-x: auto;
+    overflow-y: auto;
+    height: 100%;
+    column-span: 2;
+    row-span: 2;
+    background: $panel;
+    border: rgb(0, 40, 100);
+    
+}
+
+.event-text-2 > Static {
+    overflow-x: auto;
+    overflow-y: auto;
+    width: auto;
+    height: auto;
+    margin-right: 1;
+    background: $boost;
+    
+}
+
+.container {
+    layout: horizontal;
+    height: 3;
+    width: 100%;
+}
+
+Static.remove {
+    display: none;
+}
+
+Switch {
+    height: auto;
+    width: 32%;
+}
+
+Button {
+    background: rgb(0, 40, 100);
+    color: white;
+    width: 100%;
+}
+
+.label {
+    height: 3;
+    content-align: center middle;
+    width: 100%;
+}
+
+.feature-text {
+    height: 3;
+    background: rgb(0, 0, 0);
+    content-align: left middle;
+    width: 68%;
+}
+Input {
+    width: 32%;
+    background: rgb(0, 40, 100);
+}
+
+
+.horizontal-layout {
+    layout: horizontal;
+    height: auto;
+}
