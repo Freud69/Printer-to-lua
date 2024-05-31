@@ -29,7 +29,7 @@ requirements available in requirements.txt file. Run the following pip query ins
 ```
 ## TODOs
 
--Include support for circular bed in printer.lua file.
--Include support for multiple extruders.
--Pack the app for easy download and use.
--Integrate web SSH support.
+- Include support for circular bed in printer.lua file.
+- Include support for multiple extruders.
+- Pack the app for easy download and use.
+- Integrate web SSH support.
