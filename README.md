@@ -9,7 +9,7 @@ Project done as an internship project for team MFX under 6 weeks. May resume lat
 
  - [Textual](https://textual.textualize.io/) powers the entirety of the app through a seamless console-embedded UI with reactive components. Particularly useful to get a live-view of what your settings will generate. Waiting for _textual-web_ to integrate client-side copy-to-clipboard and file saving to upgrade this app into a web-app.
  - The [Ice-SL printers repository](https://github.com/shapeforge/icesl-printers) with updated access to supported printers'profiles.
- - [Ice-SL printer documentation ](https://gitlab.inria.fr/mfx/icesl-documentation/-/wikis/Printer-profile)
+ - The [Ice-SL printer documentation ](https://gitlab.inria.fr/mfx/icesl-documentation/-/wikis/Printer-profile) helped finding the general template for each file.
 
 ## Features
 
