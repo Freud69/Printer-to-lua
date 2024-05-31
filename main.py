@@ -281,67 +281,6 @@ main_variables = {
 
 #MARLIN
 
-footer = '''
- --called to create the footer of the G-Code file.
-
-output('')
-output('G4 ; wait')
-output('M104 S0 ; turn off temperature')
-output('M140 S0 ; turn off heatbed')
-output('M107 ; turn off fan')
-output('G28 X Y ; home X and Y axis')
-output('G91')
-output('G0 Z 10') -- move in Z to clear space between print and nozzle
-output('G90')
-output('M84 ; disable motors')
-output('')
-
--- restore default accel
-output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
-output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
-output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
-output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-'''
-
-comment = ''
-
-layer_start = ''
-
-layer_stop = ''
-
-exruder_start= ''
-
-extruder_stop = ''
-
-select_extruder = ''
-
-swap_extruder = ''
-
-prime = ''
-
-retract = ''
-
-move_e = ''
-
-move_xyz = ''
-
-move_xyze = ''
-
-progress = ''
-
-set_feedrate = ''
-
-set_fan_speed = ''
-
-set_extruder_temperature= ''
-
-wait = ''
-
-set_and_wait_extruder_temperature = ''
-
-set_mixing_ratios = ''
-
 #REPRAP
 
 #KLIPPER
@@ -356,18 +295,105 @@ class gui(App):
     #reactive variables. Regularly modified throughout the creation process
     featurecode = reactive("Begin by entering your printer's name.", always_update=True, repaint=True, layout=True) #stores our final result
     printercode = reactive("", always_update=True, repaint=True, layout=True)
-    extrudercount = reactive(1, always_update=True, repaint=True, layout=True)
-    printername = reactive('', always_update=True, repaint=True, layout=True)
+
+    extruder_count = reactive(1, always_update=True, repaint=True, layout=True)
+    printer_name = reactive('', always_update=True, repaint=True, layout=True)
     quality = reactive('low', always_update=True, repaint=True, layout=True)
     material = reactive('pla', always_update=True, repaint=True, layout=True)
-    enableacceleration = reactive(False, always_update=True, repaint=True, layout=True)
-    printerheader = reactive('', always_update=True, repaint=True, layout=True)
-    printerfooter = reactive('', always_update=True, repaint=True, layout=True)
-    classicjerk = reactive(False, always_update=True, repaint=True, layout=True)
-    autobedleveling = reactive(False, always_update=True, repaint=True, layout=True)
-    reloadbedmesh = reactive(False, always_update=True, repaint=True, layout=True)
+    enable_acceleration = reactive(False, always_update=True, repaint=True, layout=True)
+    classic_jerk = reactive(False, always_update=True, repaint=True, layout=True)
+    auto_bed_leveling = reactive(False, always_update=True, repaint=True, layout=True)
+    reload_bed_mesh = reactive(False, always_update=True, repaint=True, layout=True)
     firmware = reactive(0, always_update=True, repaint=True, layout=True)
-    heatedchamber = reactive(False, always_update=True, repaint=True, layout=True)
+    heated_chamber = reactive(False, always_update=True, repaint=True, layout=True)
+
+    printer_header = reactive('', always_update=True, repaint=True, layout=True)
+    printer_footer = reactive('', always_update=True, repaint=True, layout=True)
+    printer_layer_start = reactive('', always_update=True, repaint=True, layout=True)
+    printer_layer_stop = reactive('', always_update=True, repaint=True, layout=True)
+    printer_extruder_start = reactive('', always_update=True, repaint=True, layout=True)
+    printer_extruder_stop = reactive('', always_update=True, repaint=True, layout=True)
+    printer_select_extruder = reactive('', always_update=True, repaint=True, layout=True)
+    printer_swap_extruder = reactive('', always_update=True, repaint=True, layout=True)
+    printer_prime = reactive('', always_update=True, repaint=True, layout=True)
+    printer_retract = reactive('', always_update=True, repaint=True, layout=True)
+    printer_move_e = reactive('', always_update=True, repaint=True, layout=True)
+    printer_move_xyz = reactive('', always_update=True, repaint=True, layout=True)
+    printer_move_xyz_e = reactive('', always_update=True, repaint=True, layout=True)
+    printer_progress = reactive('', always_update=True, repaint=True, layout=True)
+    printer_set_feedrate = reactive('', always_update=True, repaint=True, layout=True)
+    printer_set_fan_speed = reactive('', always_update=True, repaint=True, layout=True)
+    printer_set_extruder_temperature = reactive('', always_update=True, repaint=True, layout=True)
+    printer_wait = reactive('', always_update=True, repaint=True, layout=True)
+    printer_set_and_wait_extruder_temperature = reactive('', always_update=True, repaint=True, layout=True)
+    printer_set_mixing_ratios = reactive('', always_update=True, repaint=True, layout=True)
+    printer_util_functions_text = '''
+
+--//////////////////////////////////////////////////Util functions - mainly for unit conversions
+function round(number, decimals)
+  --[[
+    returns a rounded value of "number"
+    ]]
+  local power = 10^decimals
+  return math.floor(number * power) / power
+end
+-----------------------
+function vol_to_mass(volume, density)
+  --[[
+    converts current volume to mass.
+    Used along with the next function to approximate filament consumption."
+    ]]
+  return density * volume
+end
+-----------------------
+function e_to_mm_cube(filament_diameter, e)
+  --[[
+    Uses the filament's dimensions and extrusion width to approximate the volume (mm^3)
+    Used along with the previous function to approximate filament consumption.
+    ]]
+  local r = filament_diameter / 2
+  return (math.pi * r^2 ) * e
+end
+-----------------------
+-- get the E value (for G1 move) from a specified deposition move
+function e_from_dep(dep_length, dep_width, dep_height, extruder)
+  --[[
+    Yet to be understood
+  ]]
+  local r1 = dep_width / 2
+  local r2 = filament_diameter_mm[extruder] / 2
+  local extruded_vol = dep_length * math.pi * r1 * dep_height
+  return extruded_vol / (math.pi * r2^2)
+end
+-----------------------
+function jerk_to_junction_deviation(jerk, accel)
+  --[[
+    Converts Marlin jerk value to junction deviation
+    ]]
+  return 0.4 * ( (jerk^2) / accel )
+end
+-----------------------
+-- marlin jerk * √2 = square corner velocity
+-- scv = square corner velocity
+function scv_to_jerk(scv) 
+  --[[
+    converts klipper scv value to marlin jerk value
+    ]]
+  return math.sqrt(2) * scv
+end
+-----------------------
+function jerk_to_scv(jerk)
+  --[[
+    converts marlin jerk value to klipper scv value
+    ]]
+  return jerk/math.sqrt(2)
+end
+
+'''
+    printer_util_functions = reactive(printer_util_functions_text, always_update=True, repaint=True, layout=True)
+
+
+
     TITLE = 'Profile to Lua' #Header's title
     CSS_PATH = 'style.tcss' #Graphic elements are managed through tcss files, much like web css.
 
@@ -816,8 +842,8 @@ class gui(App):
                     with VerticalScroll(classes='event-text-2'):
                         header_static = Static(f"Header", classes="label", id=f'static_header')
                         footer_static = Static(f"Footer", classes="label", id=f'static_footer')
-                        header_area = TextArea.code_editor(self.printerheader, classes='features', language='python', id='header')
-                        footer_area = TextArea.code_editor(text=self.printerfooter, classes='features', language='python', id='footer')
+                        header_area = TextArea.code_editor(self.printer_header, classes='features', language='python', id='header')
+                        footer_area = TextArea.code_editor(text=self.printer_footer, classes='features', language='python', id='footer')
                         
                         # Register the lua language and highlight query
                         # text_area.register_language(lua_language, lua_highlight_query)
@@ -854,8 +880,8 @@ class gui(App):
 
         if event.switch.id == 'enable_acceleration':#displays/hides acceleration-related features in advanced mode,
             #and most importantly, entirely disables/enables its handling.
-            self.enableacceleration = event.value
-            self.refresh_header(event.value, self.autobedleveling, self.reloadbedmesh)
+            self.enable_acceleration = event.value
+            self.refresh_header(event.value, self.auto_bed_leveling, self.reload_bed_mesh)
             self.refresh_footer(event.value)
             
             if event.switch.value == False:
@@ -869,12 +895,12 @@ class gui(App):
                     self.query(f'#horizontal_{feature}').first().display = True
 
         if event.switch.id =='auto_bed_leveling':
-            self.autobedleveling = event.value
-            self.refresh_header(self.enableacceleration,event.value, self.reloadbedmesh)
+            self.auto_bed_leveling = event.value
+            self.refresh_header(self.enable_acceleration,event.value, self.reload_bed_mesh)
         
         if event.switch.id =='reload_bed_mesh':
-            self.reloadbedmesh = event.value
-            self.refresh_header(self.enableacceleration,event.value, self.reloadbedmesh)
+            self.reload_bed_mesh = event.value
+            self.refresh_header(self.enable_acceleration,event.value, self.reload_bed_mesh)
 
         if event.switch.id == 'advanced_mode':#toggles advanced mode and displays hidden feature fields.
             if event.switch.value == False:
@@ -887,7 +913,7 @@ class gui(App):
                     self.query(f'#horizontal_{feature}').first().display = True
         
         if event.switch.id == 'heated_chamber':
-            self.heatedchamber = event.value
+            self.heated_chamber = event.value
             if event.value:
                 self.query('#chamber_temp_degree_c').first().disabled = False
                 self.query('#chamber_temp_degree_c_min').first().disabled = False
@@ -908,7 +934,7 @@ class gui(App):
                 self.query('#fan_speed_percent_on_bridges_pm').first().disabled = True
         
         if event.switch.id == 'classic_jerk':
-            self.classicjerk = event.value
+            self.classic_jerk = event.value
             if event.value:
                 self.query('#default_jerk').first().disabled = False
                 self.query('#infill_jerk').first().disabled = False
@@ -939,7 +965,7 @@ class gui(App):
                 self.query(f'#horizontal_nozzle_{extruder}').first().display = False
                 self.query(f'#horizontal_fildiam_{extruder}').first().display = False
 
-            self.extrudercount = event.select.value # we store the number of extruders in a reactive variable 
+            self.extruder_count = event.select.value # we store the number of extruders in a reactive variable 
             #as it will be used for the final output.
             if event.value > 1:
                 self.query('#extruder_swap_zlift_mm').first().disabled = False
@@ -969,9 +995,9 @@ class gui(App):
                 self.query('#bed_size_x_mm').first().disabled = True
                 self.query('#bed_size_y_mm').first().disabled = True
                 
-        if event.select.id in [f'nozzle_diameter_mm_{i}' for i in range(self.extrudercount)] : #minimum and maximum layer thicknesses 
+        if event.select.id in [f'nozzle_diameter_mm_{i}' for i in range(self.extruder_count)] : #minimum and maximum layer thicknesses 
             #are rescaled values of the nozzle_diameter.
-            values = [self.query(f'#nozzle_diameter_mm_{i}').first().__getattribute__('value') for i in range(self.extrudercount)]
+            values = [self.query(f'#nozzle_diameter_mm_{i}').first().__getattribute__('value') for i in range(self.extruder_count)]
             min_nozzle_diam = min(values)
             max_nozzle_diam = max(values)
             self.query('#z_layer_height_mm_min').first().__setattr__('value', f'{round(min_nozzle_diam*0.1, 2)}')
@@ -1064,7 +1090,7 @@ class gui(App):
     @on(Input.Changed)#handles the case of input widgets being modified.
     def on_input_changed(self, event:Input.Changed) -> None:
         if event.input.id == 'printer_name':
-            self.printername = event.value
+            self.printer_name = event.value
 
             if event.validation_result.is_valid == False:
                 #error log
@@ -1147,10 +1173,10 @@ class gui(App):
             errorsend = ''
             self.featurecode = "" #empties the output.
             try: #a try and catch section to raise errors when faulty lua outputs are made, i.e. empty values
-                if self.printername == '':
+                if self.printer_name == '':
                     errorsend = 'Missing value.'
                     raise "Missing Value"
-                self.featurecode += '--Custom profile for ' + self.printername +'\n'
+                self.featurecode += '--Custom profile for ' + self.printer_name +'\n'
                 self.featurecode += '--Created on ' +  datetime.now().strftime("%x") +'\n \n'
                 self.featurecode += '--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper; 3 = Others\n'
                 self.featurecode += 'firmware = '+ f'{self.query("#firmware").first().__getattribute__("value")}'
@@ -1181,7 +1207,7 @@ class gui(App):
                             self.query('#main-text').first().update(f'{self.featurecode}')
                             errorsend = 'query update 2.'
 
-                for extruder in range(1, int(self.extrudercount)): #handles similar actions for every additonal extruder settings. 
+                for extruder in range(1, int(self.extruder_count)): #handles similar actions for every additonal extruder settings. 
                     #If no additional extruder, no additional comments shall be written.
                     errorsend = 'extruders.'
                     nozzle_value = str(self.query(f'#nozzle_diameter_mm_{extruder}').first().__getattribute__('value'))
@@ -1216,7 +1242,7 @@ class gui(App):
                             errorsend = 'query update 4.'
 
                 ## Folder creation (if it does not exist yet) and lua file dumping.
-                printer_name_words = self.printername.split(' ')
+                printer_name_words = self.printer_name.split(' ')
                 printer_name = ''
                 for word in printer_name_words:
                     if word != printer_name_words[-1]:
@@ -1244,7 +1270,7 @@ class gui(App):
                 if self.quality == '':
                     errorsend = 'Missing value.'
                     raise "Missing Value"
-                self.featurecode += '--Custom quality profile: ' + self.quality + f' for {self.printername} \n'
+                self.featurecode += '--Custom quality profile: ' + self.quality + f' for {self.printer_name} \n'
                 self.featurecode += '--Created on ' +  datetime.now().strftime("%x") +'\n \n'
 
                 for category in quality_features:
@@ -1283,9 +1309,9 @@ class gui(App):
                     else:
                         quality_name += word
                 
-                if f"{self.printername}" not in os.listdir():
-                    os.makedirs(f'{self.printername}/profiles')
-                dump_file = open(f'./{self.printername}/profiles/{self.quality}.lua', 'w')
+                if f"{self.printer_name}" not in os.listdir():
+                    os.makedirs(f'{self.printer_name}/profiles')
+                dump_file = open(f'./{self.printer_name}/profiles/{self.quality}.lua', 'w')
                 dump_file.write(self.featurecode)
                 self.copy_to_clipboard(self.featurecode)
                 
@@ -1302,7 +1328,7 @@ class gui(App):
                 if self.quality == '':
                     errorsend = 'Missing value.'
                     raise "Missing Value"
-                self.featurecode += '--Custom material profile: ' + self.material + f' for {self.printername} \n'
+                self.featurecode += '--Custom material profile: ' + self.material + f' for {self.printer_name} \n'
                 self.featurecode += '--Created on ' +  datetime.now().strftime("%x") +'\n \n'
 
                 self.featurecode += '\n \n'+ '--extruder_changes'
@@ -1349,9 +1375,9 @@ class gui(App):
                     else:
                         material_name += word
                 
-                if f"{self.printername}" not in os.listdir():
-                    os.makedirs(f'{self.printername}/materials')
-                dump_file = open(f'./{self.printername}/materials/{self.material}.lua', 'w')
+                if f"{self.printer_name}" not in os.listdir():
+                    os.makedirs(f'{self.printer_name}/materials')
+                dump_file = open(f'./{self.printer_name}/materials/{self.material}.lua', 'w')
                 dump_file.write(self.featurecode)
                 self.copy_to_clipboard(self.featurecode)
                 
@@ -1365,7 +1391,7 @@ class gui(App):
             self.printercode = ''
             try:
                 errorsend = 'start'
-                self.printercode += '--Printer functions for' + self.printername +'\n'
+                self.printercode += '--Printer functions for' + self.printer_name +'\n'
                 self.printercode += '--Created on ' +  datetime.now().strftime("%x") +'\n \n'
                 self.printercode += "output(';FLAVOR:Marlin')"
                 self.printercode += "output(';Layer height: ' .. round(z_layer_height_mm,2))"
@@ -1398,15 +1424,24 @@ path_type = {
                 self.printercode += '--//////////////////////////////////////////////////Main Functions - called by IceSL \n'
                 self.printercode += '--################################################## HEADER & FOOTER \n'
 
-                self.printercode += self.printerheader
+                self.printercode += self.printer_header
                 self.printercode += '-----------------------\n'
 
-                self.printercode += self.printerfooter + '\n'
+                self.printercode += self.printer_footer + '\n'
                 self.printercode += '--################################################## COMMENT'
+                self.printercode += '''
 
+function comment(text)
+  --[[
+    called when outputting a comment "text".
+    ]]
+    output('; ' .. text)
+  end
+  
+'''
                 ## Folder creation (if it does not exist yet) and lua file dumping.
                 errorsend = 'dumping'
-                printer_name_words = self.printername.split(' ')
+                printer_name_words = self.printer_name.split(' ')
                 printer_name = ''
                 for word in printer_name_words:
                     if word != printer_name_words[-1]:
@@ -1426,7 +1461,7 @@ path_type = {
 
 ###lua code refreshers
     def refresh_header(self, accel_Enabled, auto_bed_leveling_Enabled, reload_bed_mesh_Enabled) -> None:
-        self.printerheader = '''function header()
+        self.printer_header = '''function header()
 
     -- called to create the header of the G-Code file.
 
@@ -1436,7 +1471,7 @@ path_type = {
         '''
 
         if accel_Enabled:
-            self.printerheader += '''
+            self.printer_header += '''
     --set limits
     output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
     output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
@@ -1444,35 +1479,35 @@ path_type = {
     output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
     output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
         '''
-        self.printerheader += '''
+        self.printer_header += '''
     output('')
 
     output('M109 R' .. extruder_temp_degree_c[extruders[0]] .. ' ; set extruder temp')
     output('M190 S' .. bed_temp_degree_c .. ' ; wait for bed temp')
     '''
-        if self.heatedchamber:
-            self.printerheader += '''
+        if self.heated_chamber:
+            self.printer_header += '''
     output('M191 R' .. chamber_temp_degree_c .. ' ; set and wait chamber temperature')
 '''
-        self.printerheader +='''
+        self.printer_header +='''
     output('M107')
     output('G28 ; home all without mesh bed level')
 
     '''
         if auto_bed_leveling_Enabled and not reload_bed_mesh_Enabled:
-            self.printerheader += '''
+            self.printer_header += '''
     --start auto bed leveling
     output('G29 ; auto bed leveling')
     output('G0 F' .. travel_speed_mm_per_sec * 60 .. 'X0 Y0 ; back to the origin to begin the purge')
     '''
         elif reload_bed_mesh_Enabled:
-            self.printerheader +='''
+            self.printer_header +='''
     --start auto bed leveling and reload previous bed mesh
     output('M420 S1 ; enable bed leveling (was disabled y G28)')
     output('M420 L ; load previous bed mesh')
     '''
 
-        self.printerheader += '''
+        self.printer_header += '''
     output('M109 S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
 
     output('')
@@ -1485,10 +1520,10 @@ path_type = {
 end
 '''
 
-        self.query('#header').first().__setattr__('text', self.printerheader)
+        self.query('#header').first().__setattr__('text', self.printer_header)
 
     def refresh_footer(self, accel_Enabled) -> None:
-        self.printerfooter = '''
+        self.printer_footer = '''
 function footer()
     --called to create the footer of the G-Code file.
 
@@ -1497,11 +1532,11 @@ function footer()
     output('M104 S0 ; turn off temperature')
     output('M140 S0 ; turn off heatbed')
     '''
-        if self.heatedchamber:
-            self.printerfooter +='''
+        if self.heated_chamber:
+            self.printer_footer +='''
     output('M141 S0 ; turn off heated chamber')
 '''
-        self.printerfooter +='''
+        self.printer_footer +='''
 
     output('M107 ; turn off fan')
     output('G28 X Y ; home X and Y axis')
@@ -1513,7 +1548,7 @@ function footer()
     '''
 
         if accel_Enabled:
-            self.printerfooter += '''
+            self.printer_footer += '''
     --set limits back to original values.
     output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
     output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
@@ -1521,11 +1556,11 @@ function footer()
     output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
     output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
             '''
-        self.printerfooter += '''
+        self.printer_footer += '''
 end
 '''
 
-        self.query('#footer').first().__setattr__('text', self.printerfooter)
+        self.query('#footer').first().__setattr__('text', self.printer_footer)
 
     def on_mount(self) -> None:
         '''on mount -> when the app initialises on the terminal.   
