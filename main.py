@@ -299,7 +299,16 @@ main_variables = {
 # MARLIN
 
 function_dict = {
-    "COMMENT": {"comment": ""},
+    "COMMENT": {
+        "comment": """ 
+function comment(text)
+  --[[
+    called when outputting a comment "text".
+    ]]
+    output('; ' .. text)
+end
+
+"""},
     "LAYER": {
         "layer_start": """
 function layer_start(zheight)
@@ -607,6 +616,12 @@ class gui(App):
 
     header = reactive("", always_update=True, repaint=True, layout=True)
     footer = reactive("", always_update=True, repaint=True, layout=True)
+    comment = reactive(
+        function_dict["COMMENT"]["comment"],
+        always_update=True,
+        repaint=True,
+        layout=True,
+    )
     layer_start = reactive(
         function_dict["LAYER"]["layer_start"],
         always_update=True,
@@ -2453,16 +2468,16 @@ end
             self.printercode = ""
             try:
                 errorsend = "start"
-                self.printercode += "--Printer functions for" + self.name + "\n"
+                self.printercode += "--Printer functions for " + self.name + "\n"
                 self.printercode += (
                     "--Created on " + datetime.now().strftime("%x") + "\n \n"
                 )
-                self.printercode += "output(';FLAVOR:Marlin')"
+                self.printercode += "output(';FLAVOR:Marlin') \n"
                 self.printercode += (
-                    "output(';Layer height: ' .. round(z_layer_height_mm,2))"
+                    "output(';Layer height: ' .. round(z_layer_height_mm,2)) \n"
                 )
-                self.printercode += "output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\n')"
-                self.printercode += "--//////////////////////////////////////////////////Defining main variables\n"
+                self.printercode += """output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\\n')"""
+                self.printercode += "--//////////////////////////////////////////////////Defining main variables \n"
 
                 for variable in main_variables:
                     errorsend = "var"
@@ -2487,22 +2502,22 @@ path_type = {
 }
 
 """
-                errorsend = "writing"
+                errorsend += "writing \n"
                 self.printercode += "--//////////////////////////////////////////////////Main Functions - called by IceSL \n"
                 self.printercode += "--################################################## HEADER & FOOTER \n"
                 self.printercode += self.header
-                self.printercode += "-----------------------\n"
+                self.printercode += "-----------------------"
                 self.printercode += self.footer + "\n"
 
-                errorsend = "fuck this shit"
+                errorsend += "fuck this shit\n"
                 for function_category in function_dict:
-                    errorsend = "fuck that shit"
+                    errorsend += "fuck that shit\n"
                     self.printercode += f"--################################################## {function_category}"
-                    errorsend = "fuck MY shit"
+                    errorsend = "fuck MY shit\n"
                     for function in function_dict[function_category]:
-                        errorsend = f"fuck YOUR SHIT"
+                        errorsend += f"fuck YOUR SHIT {function}"
                         self.printercode += self.__getattribute__(function)
-                        self.printercode += "-----------------------\n"
+                        self.printercode += "-----------------------"
 
                 ## Folder creation (if it does not exist yet) and lua file dumping.
                 errorsend = "dumping"
@@ -2629,6 +2644,8 @@ end
 
         self.query("#footer").first().__setattr__("text", self.footer)
 
+
+
     def refresh_select_extruder(self, extruder_count) -> None:
         if extruder_count > 1:
             self.select_extruder += """
@@ -2655,7 +2672,7 @@ end
   
     local e_value = 0.0
   
-    output('\n; purge extruder')
+    output('\\n; purge extruder')
     output('G0 F6000 X' .. f(x_pos) .. ' Y' .. f(y_pos) ..' Z' .. f(z_pos))
     output('G92 E0')
   
@@ -2670,7 +2687,7 @@ end
     e_value = e_value + round(e_from_dep(l2, w, z_pos, extruder),2)
     output('G1 F1000 Y' .. f(y_pos) .. ' E' .. e_value .. '  ; draw 2nd line') -- purge end
     output('G92 E0')
-    output('; done purging extruder\n')
+    output('; done purging extruder\\n')
   
     current_extruder = extruder
     current_frate = travel_speed_mm_per_sec * 60
