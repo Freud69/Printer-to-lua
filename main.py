@@ -1,7 +1,22 @@
 ###Imports
+from marlin_dict import (marlin_header_dict, 
+                         marlin_footer_dict, 
+                         marlin_select_extruder_dict,
+                         marlin_move_xyz_dict,
+                         marlin_move_xyze_dict, 
+                         marlin_function_dict)
+from rrf_dict import rrf_function_dict
+from klipper_dict import klipper_function_dict
+from tooltips import tooltips
+from features_data import (
+                            default_features, features_dict,
+                            start_as_disabled, advanced_features,
+                            accel_features, quality_features,
+                            materials_features
+                            )
+from printer_data import main_variables, util_functions_text
+
 from datetime import datetime
-from pathlib import Path
-from tree_sitter_languages import get_language, get_parser
 import os
 from textual.app import App, ComposeResult
 from textual import on
@@ -17,573 +32,8 @@ from textual.widgets import (
     TextArea,
 )
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.reactive import (
-    reactive,
-)  # ce qui permet de créer des attributs réactifs pour nos classes
+from textual.reactive import reactive  # ce qui permet de créer des attributs réactifs pour nos classes
 from textual.validation import Function
-
-###Features data
-
-# dictionary for basic infos on the printer
-default_features = {
-    "build_area_dimensions": {
-        "bed_circular": False,
-        "bed_radius": 155,
-        "bed_size_x_mm": 310,
-        "bed_size_y_mm": 310,
-        "bed_size_z_mm": 340,
-    },
-    "extruder": {
-        "extruder_count": 1,
-        "nozzle_diameter_mm_0": 0.4,
-        "filament_diameter_mm_0": 1.75,
-        "filament_linear_adv_factor": 0.06,
-    },
-}
-
-# intermediate variables used to define features rescaled from others
-default_printing_speed = 60
-default_jerk = 20
-default_accel = 3000
-
-# main dictionary with every feature needed to print, at least for most printers.
-features_dict = {
-    "retraction_settings": {
-        "filament_priming_mm": 0.8,
-        "priming_mm_per_sec": 25,
-        "retract_mm_per_sec": 25,
-    },
-    "layer_height": {
-        "z_layer_height_mm": 0.2,
-        "z_layer_height_mm_min": round(
-            default_features["extruder"]["nozzle_diameter_mm_0"] * 0.10, 2
-        ),
-        "z_layer_height_mm_max": round(
-            default_features["extruder"]["nozzle_diameter_mm_0"] * 0.80, 2
-        ),
-    },
-    "printing_temperatures": {
-        "extruder_temp_degree_c": 210,
-        "extruder_temp_degree_c_min": 150,
-        "extruder_temp_degree_c_max": 250,
-        "bed_temp_degree_c": 60,
-        "bed_temp_degree_c_min": 0,
-        "bed_temp_degree_c_max": 120,
-        "heated_chamber": False,
-        "chamber_temp_degree_c": 0,
-        "chamber_temp_degree_c_min": 0,
-        "chamber_temp_degree_c_max": 110,
-    },
-    "printing_speeds": {
-        "print_speed_mm_per_sec": default_printing_speed,
-        "print_speed_mm_per_sec_min": default_printing_speed / 3,
-        "print_speed_mm_per_sec_max": default_printing_speed * 3.5,
-        "perimeter_print_speed_mm_per_sec": default_printing_speed * 0.75,
-        "perimeter_print_speed_mm_per_sec_min": default_printing_speed / 3,
-        "perimeter_print_speed_mm_per_sec_max": default_printing_speed * 2.8,
-        "cover_print_speed_mm_per_sec": default_printing_speed * 0.75,
-        "cover_print_speed_mm_per_sec_min": default_printing_speed / 3,
-        "cover_print_speed_mm_per_sec_max": default_printing_speed * 2.8,
-        "first_layer_print_speed_mm_per_sec": default_printing_speed / 3,
-        "first_layer_print_speed_mm_per_sec_min": 5,
-        "first_layer_print_speed_mm_per_sec_max": default_printing_speed * 2.8,
-        "travel_speed_mm_per_sec": default_printing_speed * 3,
-        "travel_speed_mm_per_sec_min": 50,
-        "travel_speed_mm_per_sec_max": 500,
-    },
-    "acceleration_settings": {
-        "x_max_speed": 500,
-        "y_max_speed": 500,
-        "z_max_speed": 30,
-        "e_max_speed": 100,
-        "default_acc": default_accel,
-        "e_prime_max_acc": default_accel / 2,
-        "perimeter_acc": default_accel / 2,
-        "infill_acc": default_accel,
-        "x_max_acc": default_accel,
-        "y_max_acc": default_accel,
-        "z_max_acc": default_accel / 40,
-        "e_max_acc": default_accel,
-        "classic_jerk": False,
-        "default_jerk": default_jerk,
-        "infill_jerk": default_jerk,
-        "default_junction_deviation": round(0.4 * (default_jerk**2 / default_accel), 4),
-        "perimeter_junction_deviation": round(
-            0.4 * (default_jerk**2 / default_accel), 4
-        ),
-        "infill_junction_deviation": round(0.4 * (default_jerk**2 / default_accel), 4),
-        "travel_junction_deviation": round(0.4 * (default_jerk**2 / default_accel), 4),
-    },
-    "misc_default_settings": {
-        "enable_active_temperature_control": True,
-        "add_brim": True,
-        "brim_distance_to_print_mm": 2,
-        "brim_num_contours": 3,
-        "enable_z_lift": True,
-        "z_lift_mm": 1,
-        "enable_travel_straight": True,
-        "extruder_swap_zlift_mm": 0.2,
-        "extruder_swap_retract_length_mm": 6.5,
-        "extruder_swap_retract_speed_mm_per_sec": 25,
-    },
-    "additional_features": {
-        "use_per_path_accel": False,
-        "volumetric_flow": 10,
-        "reload_bed_mesh": False,
-        "auto_bed_leveling": False,
-    },
-}
-
-quality_features = {
-    "layer_thickness_changes": {"z_layer_height_mm": 0.2},
-    "speed_changes": {
-        "print_speed_mm_per_sec": 60,
-        "perimeter_print_speed_mm_per_sec": 30,
-        "cover_print_speed_mm_per_sec": 30,
-        "first_layer_print_speed_mm_per_sec": 20,
-        "travel_speed_mm_per_sec": 80,
-        "priming_mm_per_sec": 40,
-        "retract_mm_per_sec": 40,
-        "speed_multiplier_0": 1,
-    },
-}
-
-
-materials_features = {
-    "retraction_changes": {
-        "filament_priming_mm": 0.8,
-    },
-    "temperature_changes": {
-        "extruder_temp_degree_c": 210,
-        "bed_temp_degree_c": 60,
-        "chamber_temp_degree_c": 0,
-        "enable_fan": True,
-        "fan_speed_percent": 100,
-        "fan_speed_percent_on_bridges": 100,
-    },
-    "speed_changes": {
-        "print_speed_mm_per_sec": 60,
-        "perimeter_print_speed_mm_per_sec": 45,
-        "cover_print_speed_mm_per_sec": 30,
-        "first_layer_print_speed_mm_per_sec": 20,
-    },
-}
-
-
-tooltips = {
-    "static_firmware": "Defines G-code flavor. Entirely defines your printer's behaviour and the way your 3d model is translated to G-code instructions understandable by the machine. ",
-    "static_advanced_mode": "Toggle to hide/display advanced features. Please note they are mostly assigned according to parent-features, thus modifying them may yield unexpected results.",
-    "static_build_area_dimensions": "Settings defining your printer's bed",
-    "static_bed_circular": "Defines your bed's shape; it can either be rectangular or circular. \n Having a circular bed means the size parameters are solely defined by the bed's radius.",
-    "static_bed_radius": "If circular, defines your bed's radius and thus, its size-parameters.",
-    "static_bed_size_x_mm": "Your bed's length (mm)",
-    "static_bed_size_y_mm": "Your bed's width (mm)",
-    "static_bed_size_z_mm": "Your bed's height (mm)",
-    "static_extruder_settings": "Settings defining your extruder(s) such as the nozzle diameter.",
-    "static_extruder_count": "The number of extruders on your printer.",
-    "static_nozzle_diameter_mm_0": "Defines your first extruder's nozzle diameter (mm).",
-    "static_filament_diameter_mm_0": "Defines your first extruder's filament diameter (mm).",
-    "static_filament_linear_adv_factor": "Linear Advance grants the firmware the ability to predict the pressure build-up in the extruder at higher speed, therefore allowing it to decrease the flow of material to avoid blobs and other artifacts. This parameter defines the k-factor for said decrease.",
-    "static_retraction_settings": "Optional and advanced settings. Defines your printer's behaviour when it retracts (z-axis) itself from a print.",
-    "static_filament_priming_mm": "Defines the length of the filament retracted to prevent oozing during travel motions.",
-    "static_priming_mm_per_sec": "Defines the speed at which the filament is retracted.",
-    "static_retract_mm_per_sec": "Defines the speed at which the extruder retracts itself (z-axis) from the current print.",
-    "static_layer_height": "Settings defining the thickness of each layer.",
-    "static_z_layer_height_mm": "Defines the general thickness of each layer (mm). It is usually used to qualify the print's overall quality with 0.2 being a draft.",
-    "static_z_layer_height_mm_min": "Defines the smallest thickness (mm) achievable by the printer. Automatically scaled in accordance to nozzle diameter.",
-    "static_z_layer_height_mm_max": "Defines the largest thickness (mm) achievable by the printer. Automatically scaled in accordance to nozzle diameter.",
-    "static_printing_temperatures": "Settings defining your printer's default temperatures (C). Highly dependent on the material.",
-    "static_extruder_temp_degree_c": "Defines your extruder's temperature. Please refer to your filament's recommendations.",
-    "static_extruder_temp_degree_c_min": "Based on the previous setting",
-    "static_extruder_temp_degree_c_max": "Based on the previous setting",
-    "static_bed_temp_degree_c": "Defines your bed's heating temperature. Heating your bed to the correct temperature is crucial to efficiently deposit the first layer and make sure it sticks to the surface.",
-    "static_bed_temp_degree_c_min": "Based on the previous setting.",
-    "static_bed_temp_degree_c_max": "Based on the previous setting.",
-    "static_printing_speeds": "Settings defining the general speed at which your printer moves its extruder around.",
-    "static_print_speed_mm_per_sec": "Defines the general printing speed, meaning the speed at which your nozzle actively extrudes material.",
-    "static_print_speed_mm_per_sec_min": "Based on the previous setting.",
-    "static_print_speed_mm_per_sec_max": "Based on the previous setting. ",
-    "static_perimeter_print_speed_mm_per_sec": "Defines the specific speed at which perimeters are printed. Set by default to 3/4 of the general printing speed.",
-    "static_perimeter_print_speed_mm_per_sec_min": "Based on the previous setting.",
-    "static_perimeter_print_speed_mm_per_sec_max": "Based on the previous setting.",
-    "static_cover_print_speed_mm_per_sec": "Defines the specific speed at which covers are printed. Set by default to 3/4 of the general printing speed.",
-    "static_cover_print_speed_mm_per_sec_min": "Based on the previous setting.",
-    "static_cover_print_speed_mm_per_sec_max": "Based on the previous setting.",
-    "static_first_layer_print_speed_mm_per_sec": "Defines the specific speed at which the very first layer is printed. Set by default to 1/3 of the general printing speed.",
-    "static_first_layer_print_speed_mm_per_sec_min": "Based on the previous setting.",
-    "static_first_layer_print_speed_mm_per_sec_max": "Based on the previous setting.",
-    "static_travel_speed_mm_per_sec": "Defines the general travel speed at which the extruder moves when not printing. Set by default to 3 times the general printing speed.",
-    "static_travel_speed_mm_per_sec_min": "Based on the previous setting.",
-    "static_travel_speed_mm_per_sec_max": "Based on the previous setting.",
-    "static_acceleration_settings": "Optional and advanced settings. Help modify the way the printer handles acceleration.",
-    "static_enable_acceleration": "Enable / disable acceleration handling. Highly dependant on the firmware and still experimental. May not work as expected on every printer.",
-    "static_x_max_speed": "Maximum speed reachable by the machine on the x-axis. Usually the same as the y-axis.",
-    "static_y_max_speed": "Maximum speed reachable by the machine on the y-axis. Usually the same as the x-axis.",
-    "static_z_max_speed": "Maximum speed reachable by the machine on the z-axis. Usually way lower that the two previous maximums.",
-    "static_e_max_speed": "Maximum speed reachable by the machine idk i'm making things up rn.",
-    "static_x_max_acc": "Max acceleration on the x-axis (mm/s^2). By default, set to 'default acceleration's' value.",
-    "static_y_max_acc": "Max acceleration on the y-axis (mm/s^2). By default, set to 'default acceleration's' value.",
-    "static_z_max_acc": "Max acceleration on the z-axis (mm/s^2). By default, set to 'default acceleration's' value.",
-    "static_e_max_acc": "Max acceleration on the e-axis (mm/s^2). By default, set to 'default acceleration's' value.",
-    "static_default_acc": "Defines the general acceleration (mm/s^2).",
-    "static_e_prime_max_acc": "Defines the acceleration aimed when retracting the filament. Set by default to previous setting's value.",
-    "static_perimeter_acc": "Defines the acceleration aimed when printing the perimeter. Set by default to previous setting's value.",
-    "static_infill_acc": "Defines the acceleration aimed when printing the infill. Set by default to previous setting's value.",
-    "static_default_jerk": "Jerk handles sharp 90-degree edges, by setting the maximum instantaneous change in velocity possible. This setting defines the default value of the printer's jerk.",
-    "static_infill_jerk": "Defines jerk value for infills.",
-    "static_misc_default_settings": "Miscellaneous settings.",
-    "static_add_brim": "A brim is an extension to your print's first layer, deposited before the latter. It serves as a massive adhesion improvement and helps at avoiding warping. This setting toggles the addition of a brim.",
-    "static_brim_distance_to_print_mm": "Defines the distance (mm) from your print's base at which the brim is started.",
-    "static_brim_num_contours": "Defines the number of contours to your brim. More contours means a larger and more adhesive brim, but eventually makes it harder to take off the bed.",
-    "static_enable_z_lift": "Z lift allows the nozzle to lift itself up the z-axis before traveling, thus preventing it from inadvertendly smashing onto your print or dragging it away.",
-    "static_z_lift_mm": "Defines the height of the Z lift.",
-    "static_enable_travel_straight": "Travel straight lets the extruder get from a point to another without staying inside the print's parameter as it would normally do. This lessens travel distances but may cause defects and artifacts if the filament is not properly retracted.",
-}
-
-
-# list of advanced features that are mostly rescaled values of defining features, hidden by default.
-# Used later to enable/disable their display.
-advanced_features = [
-    "enable_active_temperature_control",
-    "filament_linear_adv_factor",
-    "perimeter_print_speed_mm_per_sec",
-    "cover_print_speed_mm_per_sec",
-    "first_layer_print_speed_mm_per_sec",
-    "travel_speed_mm_per_sec",
-    "enable_travel_straight",
-]
-advanced_features += [feature for feature in features_dict["retraction_settings"]]
-advanced_features += [
-    feature
-    for category in features_dict
-    for feature in features_dict[category]
-    if (
-        feature.endswith("min")
-        or feature.endswith("max")
-        or feature.startswith("extruder_swap")
-    )
-]
-advanced_features += [feature for feature in features_dict["additional_features"]]
-
-start_as_disabled = [
-    "default_jerk",
-    "infill_jerk",
-    "chamber_temp_degree_c",
-    "chamber_temp_degree_c_min",
-    "chamber_temp_degree_c_max",
-]
-# list of acceleration features. Hidden by default and only accessible when acceleration is enabled in advanced mode.
-accel_features = [feature for feature in features_dict["acceleration_settings"]]
-
-###Printer file
-
-# needed to create a reactive console in lua syntax
-# lua_language = get_language("lua")
-# lua_highlight_query = (Path(__file__).parent / "lua_highlights.scm").read_text()
-
-# base_code = 'idkdude = 1'
-# print(lua_highlight_query)
-
-main_variables = {
-    "extruder_e": 0,
-    "exruder_e_restart": 0,
-    "current_z": 0.0,
-    "changed_frate": False,
-    "processing": False,
-    "current_extruder": 0,
-    "current_frate": 0,
-    "current_fan_speed": -1,
-    "craftware_debug": True,
-}
-
-# MARLIN
-
-function_dict = {
-    "COMMENT": {
-        "comment": """ 
-function comment(text)
-  --[[
-    called when outputting a comment "text".
-    ]]
-    output('; ' .. text)
-end
-
-"""},
-    "LAYER": {
-        "layer_start": """
-function layer_start(zheight)
-  --called at the start of a layer at height "zheight" (mm).
-                                   
-    output('; <layer ' .. layer_id .. '>')
-    local frate = 100
-    if layer_id == 0 then
-      frate = 600
-      if not layer_spiralized then
-        output('G0 F' .. frate ..' Z' .. ff(zheight))
-      end
-    else
-      if not layer_spiralized then
-        output('G0 F' .. frate ..' Z' .. ff(zheight))
-      end
-    end
-    current_frate = frate
-    changed_frate = true
-end
-""",
-        "layer_stop": """
-function layer_stop()
---called at the end of a layer.
-
-  extruder_e_restart = extruder_e
-  output('G92 E0')
-  output('; </layer>')
-                                  
-end
-                                  
-""",
-    },
-    "EXTRUDER": {
-        "extruder_start": """
-function extruder_start()
-  --called before extruding.
-
-end
-""",
-        "extruder_stop": """
-function extruder_stop()
-  --called after extruding.
-
-end
-""",
-        "select_extruder": """
-function select_extruder(extruder)
---[[
-    called when setting-up the extruder "extruder". This function is called for each available extruder at 
-    the beginning of the G-Code and once for the first used extruder in the print. 
-    After this, IceSL calls "swap_extruder".
-    ]]
-    -- hack to work around not beeing a lua global""",
-        "swap_extruder": """
-function swap_extruder(ext1,ext2,x,y,z)
-  --[[
-    called when swapping extruder 'ext1' to 'ext2' at position x,y,z.
-    ]]
-end
-""",
-    },
-    "MOVEMENTS": {
-        "prime": """
-function prime(extruder,e)
-  --[[
-    called when priming from value "e" with extruder "extruder". 
-    This function must return the absolute value of the E-axis after priming.
-    ]]
-    output(';prime')
-    local len   = filament_priming_mm[extruder]
-    local speed = priming_mm_per_sec[extruder] * 60
-    output('G1 F' .. speed .. ' E' .. ff(e + len - extruder_e_restart))
-    extruder_e = e + len
-    current_frate = speed
-    changed_frate = true
-    return e + len
-end
-""",
-        "retract": """
-function retract(extruder,e)
-  --[[
-    called when retracting from value "e" with extruder "extruder". 
-    This function must return the absolute value of the-E axis after retracting.
-    ]]
-    output(';retract')
-    local len   = filament_priming_mm[extruder]
-    local speed = retract_mm_per_sec[extruder] * 60
-    output('G1 F' .. speed .. ' E' .. ff(e - len - extruder_e_restart))
-    extruder_e = e - len
-    current_frate = speed
-    changed_frate = true
-    return e - len
-  end
-""",
-        "move_e": """
-function move_e(e)
-  --[[
-    called when moving the E-axis to value "e" with the current extruder.
-    ]]
-    extruder_e = e
-  
-    local e_value =  extruder_e - extruder_e_restart
-  
-    if changed_frate == true then
-      output('G1 F' .. current_frate .. ' E' .. ff(e_value))
-      changed_frate = false
-    else
-      output('G1 E' .. ff(e_value))
-    end
-end
-""",
-        "move_xyz": """
-  --[[
-    called when traveling to "x,y,z".
-    ]]
-    if processing == true then
-        processing = false
-        output(';travel')
-        if use_per_path_accel then
-            output('M204 S' .. default_acc)
-        end
-    end
-  
-    if z == current_z then
-        if changed_frate == true then
-            output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y))
-            changed_frate = false
-        else
-            output('G0 X' .. f(x) .. ' Y' .. f(y))
-        end
-    else
-        if changed_frate == true then
-            output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z))
-            changed_frate = false
-        else
-            output('G0 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z))
-        end
-        current_z = z
-    end
-end
-""",
-        "move_xyze": """
-  --[[
-    called when traveling to "x,y,z" while extruding to value "e".
-    ]]
-    extruder_e = e
-  
-    local e_value = extruder_e - extruder_e_restart
-  
-    if processing == false then
-      processing = true
-      local p_type = 1 -- default paths naming
-      if craftware_debug then p_type = 2 end
-      if      path_is_perimeter then output(path_type[1][p_type])
-      elseif  path_is_shell     then output(path_type[2][p_type])
-      elseif  path_is_infill    then output(path_type[3][p_type])
-      elseif  path_is_raft      then output(path_type[4][p_type])
-      elseif  path_is_brim      then output(path_type[5][p_type])
-      elseif  path_is_shield    then output(path_type[6][p_type])
-      elseif  path_is_support   then output(path_type[7][p_type])
-      elseif  path_is_tower     then output(path_type[8][p_type])
-    end
-  
-      -- acceleration management
-    if use_per_path_accel then
-      if     path_is_perimeter or path_is_shell 
-            then set_acceleration(perimeter_acc, default_jerk)
-      elseif path_is_infill                     
-            then set_acceleration(infill_acc, infill_jerk)
-      elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
-            then set_acceleration(default_acc, default_jerk)
-      end
-    end
-end
-  
-    if z == current_z then
-      if changed_frate == true then
-        output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
-        changed_frate = false
-      else
-        output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
-      end
-    else
-      if changed_frate == true then
-        output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z) .. ' E' .. ff(e_value))
-        changed_frate = false
-      else
-        output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z) .. ' E' .. ff(e_value))
-      end
-      current_z = z
-    end
-end
-""",
-    },
-    "PROGRESS": {
-        "progress": """ 
-function progress(percent)
-  output('M73 P' .. percent)
-end
-
-"""
-    },
-    "SET": {
-        "set_feedrate": """
-function set_feedrate(rate)
-  --[[
-    called when setting the feed-rate of the printer to "rate".
-    ]]
-    if rate ~= current_frate then
-      current_frate = rate
-      changed_frate = true
-    end
-end
-""",
-        "set_fan_speed": """
-function set_fan_speed(speed)
-  --[[
-    called when setting the part cooling fan velocity to "speed" (%).
-    ]]
-    if speed ~= current_fan_speed then
-      output('M106 S'.. math.floor(255 * speed/100))
-      current_fan_speed = speed
-    end
-end
-""",
-        "set_extruder_temperature": """
-function set_extruder_temperature(extruder,temperature)
-  --[[
-    called when setting the extruder "extruder" temperature to "temperature".
-    ]]
-    output('M104 S' .. temperature)
-end
-""",
-    },
-    "WAIT": {
-        "wait": """
-function wait(sec,x,y,z)
-  --[[
-    called when the parameter "enable_min_layer_time" is set to true
-    and the printing time for the layer is less than "min_layer_time_sec". 
-    "sec" is the remaining time to achieve "min_layer_time_sec" and 
-    "x,y,z" is where IceSL expects the head to be after the wait.
-    ]]
-    output("; WAIT --" .. sec .. "s remaining" )
-    output("G0 F" .. travel_speed_mm_per_sec .. " X10 Y10")
-    output("G4 S" .. sec .. "; wait for " .. sec .. "s")
-    output("G0 F" .. travel_speed_mm_per_sec .. " X" .. f(x) .. " Y" .. f(y) .. " Z" .. ff(z))
-  end
-""",
-    },
-    "MIXING PARAMETERS": {
-        "set_and_wait_extruder_temperature": """
-function set_and_wait_extruder_temperature(extruder,temperature)
-  --[[
-    called when setting the extruder "extruder" temperature to "temperature" while waiting. 
-    Used when printing with multiple extruders.
-    ]]
-    output('M109 S' .. temperature)
-end
-""",
-        "set_mixing_ratios": """
-function set_mixing_ratios(ratios)
-  --[[   
-    called when setting the mixing ratios of each filament fed onto the mixing extruder; 
-    "ratios" is a table containing the ratio for each filament (the add up to 1). 
-    This function is only called when using color mixing.
-    ]]
-end        
-""",
-    },
-}
-# REPRAP
-
-# KLIPPER
 
 
 ###Textual GUI
@@ -611,9 +61,20 @@ class gui(App):
     classic_jerk = reactive(False, always_update=True, repaint=True, layout=True)
     auto_bed_leveling = reactive(False, always_update=True, repaint=True, layout=True)
     reload_bed_mesh = reactive(False, always_update=True, repaint=True, layout=True)
+    use_per_path_accel = reactive(False, always_update=True, repaint=True, layout=True)
+    craftware_debug = reactive(main_variables["craftware_debug"], always_update=True, repaint=True, layout=True)
     firmware = reactive(0, always_update=True, repaint=True, layout=True)
     heated_chamber = reactive(False, always_update=True, repaint=True, layout=True)
-
+    volumetric_flow = reactive(str(features_dict['additional_features']['volumetric_flow']), 
+                               always_update=True, repaint=True, layout=True)
+    printing_speed = reactive(str(features_dict['printing_speeds']['print_speed_mm_per_sec']),
+                                       always_update=True, repaint=True, layout=True)
+    layer_height = reactive(str(features_dict['layer_height']['z_layer_height_mm']), 
+                                    always_update=True, repaint=True, layout=True)
+    nozzle_diameter = reactive(str(default_features['extruder']['nozzle_diameter_mm_0']), 
+                               always_update=True, repaint=True, layout=True)
+    
+    function_dict = marlin_function_dict
     header = reactive("", always_update=True, repaint=True, layout=True)
     footer = reactive("", always_update=True, repaint=True, layout=True)
     comment = reactive(
@@ -728,72 +189,11 @@ class gui(App):
         layout=True,
     )
 
-    util_functions_text = """
-
---//////////////////////////////////////////////////Util functions - mainly for unit conversions
-function round(number, decimals)
-  --[[
-    returns a rounded value of "number"
-    ]]
-  local power = 10^decimals
-  return math.floor(number * power) / power
-end
------------------------
-function vol_to_mass(volume, density)
-  --[[
-    converts current volume to mass.
-    Used along with the next function to approximate filament consumption."
-    ]]
-  return density * volume
-end
------------------------
-function e_to_mm_cube(filament_diameter, e)
-  --[[
-    Uses the filament's dimensions and extrusion width to approximate the volume (mm^3)
-    Used along with the previous function to approximate filament consumption.
-    ]]
-  local r = filament_diameter / 2
-  return (math.pi * r^2 ) * e
-end
------------------------
--- get the E value (for G1 move) from a specified deposition move
-function e_from_dep(dep_length, dep_width, dep_height, extruder)
-  --[[
-    Yet to be understood
-  ]]
-  local r1 = dep_width / 2
-  local r2 = filament_diameter_mm[extruder] / 2
-  local extruded_vol = dep_length * math.pi * r1 * dep_height
-  return extruded_vol / (math.pi * r2^2)
-end
------------------------
-function jerk_to_junction_deviation(jerk, accel)
-  --[[
-    Converts Marlin jerk value to junction deviation
-    ]]
-  return 0.4 * ( (jerk^2) / accel )
-end
------------------------
--- marlin jerk * √2 = square corner velocity
--- scv = square corner velocity
-function scv_to_jerk(scv) 
-  --[[
-    converts klipper scv value to marlin jerk value
-    ]]
-  return math.sqrt(2) * scv
-end
------------------------
-function jerk_to_scv(jerk)
-  --[[
-    converts marlin jerk value to klipper scv value
-    ]]
-  return jerk/math.sqrt(2)
-end
-
-"""
     util_functions = reactive(
-        util_functions_text, always_update=True, repaint=True, layout=True
-    )
+    util_functions_text,
+    always_update=True,
+    layout=True,
+    repaint=True)
 
     TITLE = "Profile to Lua"  # Header's title
     CSS_PATH = "style.tcss"  # Graphic elements are managed through tcss files, much like web css.
@@ -827,7 +227,7 @@ end
                             ),  # Static widgets define immutable
                             # renderable objects. mainly used for plain texts
                             Switch(
-                                value=False, id="advanced_mode"
+                                value=False, id="advanced_mode", classes='important_toggle', animate=False
                             ),  # Switch widgets define a toggle-switch with value False and True in accordance
                             # to its state.
                             classes="container",
@@ -1118,9 +518,10 @@ end
                                         classes="feature-text",
                                         id="static_enable_acceleration",
                                     ),
-                                    Switch(value=False, id="enable_acceleration"),
+                                    Switch(value=False, id="enable_acceleration", animate= False),
                                     classes="container",
                                     id="horizontal_enable_acceleration",
+                                    
                                 )
                                 enable_accel.display = False
                                 yield enable_accel
@@ -1183,6 +584,7 @@ end
                                     feature_switch_field = Switch(
                                         value=features_dict[category][feature],
                                         id=f"{feature}",
+                                        animate= False
                                     )
                                     if feature in start_as_disabled:
                                         feature_switch_field.disabled = True
@@ -1321,6 +723,7 @@ end
                                     feature_switch_field = Switch(
                                         value=quality_features[category][feature],
                                         id=f"{feature}_pq",
+                                        animate= False
                                     )
                                     if feature in start_as_disabled:
                                         feature_switch_field.disabled = True
@@ -1512,6 +915,7 @@ end
                                     feature_switch_field = Switch(
                                         value=materials_features[category][feature],
                                         id=f"{feature}_pm",
+                                        animate= False
                                     )
                                     if feature in start_as_disabled:
                                         feature_switch_field.disabled = True
@@ -1540,7 +944,22 @@ end
                 lua_tab.disabled = False
 
                 with Container(classes="app-grid-2"):
-                    with VerticalScroll(classes="features"):
+                    yield Static(
+                        '''Code snippets are automatically generated according to parameters input in the Features tab. Please modify each function with extreme precaution as it will directly command your machine.''',
+                            classes='warning')
+                    with VerticalScroll(classes="features-2"):
+                        yield Horizontal(
+                            Static(
+                                'Toggle code modification',
+                                classes="feature-text",
+                                id='static_toggle_code_modification',),
+                            Switch(
+                                False,
+                                id='toggle_code_modification',
+                                classes='important_toggle',
+                                animate= False),
+                            classes='horizontal-layout')
+                        
                         for variable in main_variables:
                             if variable != "path_type":
                                 tmp_variable_words = [
@@ -1583,7 +1002,7 @@ end
                                         id=f"static_{variable}",
                                     )
                                     variable_switch_field = Switch(
-                                        value=main_variables[variable], id=f"{variable}"
+                                        value=main_variables[variable], id=f"{variable}", animate= False
                                     )
                                     variable_horizontal = Horizontal(
                                         variable_text,
@@ -1594,14 +1013,14 @@ end
                                     # if feature in advanced_features:
                                     #     feature_horizontal.display = False
                                     yield variable_horizontal
-
+                        
                         yield Button("[b]Create", id="send-printer", disabled=True)
                         # variable_static = Static(f"Variable setup", classes="label", id=f'static_variable')
                         # variable_area = TextArea.code_editor(text=f'{main_variables}', classes='features', language='python')
 
                         # yield variable_static
                         # yield variable_area
-                    with VerticalScroll(classes="event-text-2"):
+                    with VerticalScroll(classes="event-text-2", disabled=True, id='event-text-2'):
                         header_static = Static(
                             f"Header", classes="label", id=f"static_header"
                         )
@@ -1626,15 +1045,15 @@ end
                         yield footer_static
                         yield footer_area
 
-                        for category in function_dict:
-                            for function in function_dict[category]:
+                        for category in self.function_dict:
+                            for function in self.function_dict[category]:
                                 function_static = Static(
                                     f"{function.title()}",
                                     classes="label",
                                     id=f"static_{function}",
                                 )
                                 function_area = TextArea.code_editor(
-                                    function_dict[category][function],
+                                    self.function_dict[category][function],
                                     classes="features",
                                     language="python",
                                     id=f"{function}",
@@ -1642,13 +1061,10 @@ end
                                 yield function_static
                                 yield function_area
 
-    @on(
-        Switch.Changed
-    )  # decorator called upon receiving a change in one of the yielded Switch widgets.
+    @on(Switch.Changed)  # decorator called upon receiving a change in one of the yielded Switch widgets.
     # this decorator declares the following method as a message handler.
-    def on_switch_changed(
-        self, event: Switch.Changed
-    ) -> None:  # the event class gets the switch's id, value, and more.
+    def on_switch_changed(self, event: Switch.Changed) -> None:  # the event class gets the switch's id, value, and more.
+
         if (
             event.switch.id == "add_brim"
         ):  # since "add_brim" is a Switch, its "value" attribute can only be a bool
@@ -1680,10 +1096,8 @@ end
         ):  # displays/hides acceleration-related features in advanced mode,
             # and most importantly, entirely disables/enables its handling.
             self.enable_acceleration = event.value
-            self.refresh_header(
-                event.value, self.auto_bed_leveling, self.reload_bed_mesh
-            )
-            self.refresh_footer(event.value)
+            self.refresh_header()
+            self.refresh_footer()
 
             if event.switch.value == False:
                 for feature in accel_features:
@@ -1697,19 +1111,21 @@ end
 
         if event.switch.id == "auto_bed_leveling":
             self.auto_bed_leveling = event.value
-            self.refresh_header(
-                self.enable_acceleration, event.value, self.reload_bed_mesh
-            )
+            self.query('#reload_bed_mesh').first().disabled = not event.value
+            self.refresh_header()
 
         if event.switch.id == "reload_bed_mesh":
             self.reload_bed_mesh = event.value
-            self.refresh_header(
-                self.enable_acceleration, event.value, self.reload_bed_mesh
-            )
+            self.refresh_header()
 
-        if (
-            event.switch.id == "advanced_mode"
-        ):  # toggles advanced mode and displays hidden feature fields.
+        if event.switch.id == 'use_per_path_accel':
+            self.use_per_path_accel = event.value
+            self.refresh_move_xyze()
+
+        if event.switch.id == 'craftware_debug':
+            self.craftware_debug = event.value
+            self.refresh_move_xyze()
+        if (event.switch.id == "advanced_mode"):# toggles advanced mode and displays hidden feature fields.
             if event.switch.value == False:
                 self.query(f"#horizontal_enable_acceleration").first().display = False
                 for feature in advanced_features:
@@ -1721,6 +1137,7 @@ end
 
         if event.switch.id == "heated_chamber":
             self.heated_chamber = event.value
+            self.refresh_header()
             if event.value:
                 self.query("#chamber_temp_degree_c").first().disabled = False
                 self.query("#chamber_temp_degree_c_min").first().disabled = False
@@ -1759,6 +1176,11 @@ end
                 self.query("#infill_junction_deviation").first().disabled = False
                 self.query("#travel_junction_deviation").first().disabled = False
 
+        if event.switch.id == 'toggle_code_modification':
+            if event.value:
+                self.query('#event-text-2').first().disabled = False
+            else:
+                self.query('#event-text-2').first().disabled = True
     @on(Select.Changed)  # handles the case of Select widgets being modified.
     def on_select_changed(self, event: Select.Changed) -> None:
 
@@ -1779,7 +1201,7 @@ end
             self.extruder_count = (
                 event.select.value
             )  # we store the number of extruders in a reactive variable
-            self.refresh_select_extruder(self.extruder_count)
+            self.refresh_select_extruder()
             # as it will be used for the final output.
             if event.value > 1:
                 self.query("#extruder_swap_zlift_mm").first().disabled = False
@@ -1819,25 +1241,34 @@ end
                 self.query("#bed_size_x_mm").first().disabled = True
                 self.query("#bed_size_y_mm").first().disabled = True
 
-        if event.select.id in [
-            f"nozzle_diameter_mm_{i}" for i in range(self.extruder_count)
-        ]:  # minimum and maximum layer thicknesses
+        if event.select.id in [f"nozzle_diameter_mm_{i}" for i in range(self.extruder_count)]:  # minimum and maximum layer thicknesses
             # are rescaled values of the nozzle_diameter.
-            values = [
-                self.query(f"#nozzle_diameter_mm_{i}").first().__getattribute__("value")
-                for i in range(self.extruder_count)
-            ]
+            values = [self.query(f"#nozzle_diameter_mm_{i}").first().__getattribute__("value")
+                for i in range(self.extruder_count)]
+            
             min_nozzle_diam = min(values)
             max_nozzle_diam = max(values)
+
             self.query("#z_layer_height_mm_min").first().__setattr__(
                 "value", f"{round(min_nozzle_diam*0.1, 2)}"
             )
             self.query("#z_layer_height_mm_max").first().__setattr__(
                 "value", f"{round(max_nozzle_diam*0.9, 2)}"
             )
+        
+        if event.select.id == 'nozzle_diameter_mm_0':
+            self.nozzle_diameter = event.value
+            self.query('#volumetric_flow').first().__setattr__(
+                    'value', f"{round(float(event.value)*float(self.layer_height)*float(self.printing_speed), 2)}")
 
         if event.select.id == "firmware":
             self.firmware = event.value
+            if event.value == 0:
+                self.function_dict = marlin_function_dict
+            elif event.value == 1:
+                self.function_dict = rrf_function_dict
+            else:
+                self.function_dict = klipper_function_dict
             if (
                 event.value != 0
             ):  # 0 is Marlin; only Marlin supports classic Jerk, and Klipper uses SCV
@@ -2041,6 +1472,7 @@ end
                 )
 
         if event.input.id == "print_speed_mm_per_sec":
+            self.printing_speed = event.value
             if event.value != "":
                 self.query("#print_speed_mm_per_sec_min").first().__setattr__(
                     "value", f"{round(float(event.value)/3, 2)}"
@@ -2079,6 +1511,13 @@ end
                 self.query("#travel_speed_mm_per_sec").first().__setattr__(
                     "value", f"{round(float(event.value)*3, 2)}"
                 )
+                self.query('#volumetric_flow').first().__setattr__(
+                    'value', f"{round(float(event.value)*float(self.nozzle_diameter)*float(self.layer_height) ,2)}")
+
+        if event.input.id == 'z_layer_height_mm':
+            self.layer_height = event.value
+            self.query('#volumetric_flow').first().__setattr__(
+                    'value', f"{round(float(event.value)*float(self.nozzle_diameter)*float(self.printing_speed), 2)}")
 
         if event.input.id == "default_acc":
             if event.value != "":
@@ -2349,7 +1788,7 @@ end
                     else:
                         quality_name += word
 
-                if f"{self.name}" not in os.listdir():
+                if f"{self.name}" not in os.listdir() or f"{self.name}/profiles" not in os.listdir():
                     os.makedirs(f"{self.name}/profiles")
                 dump_file = open(f"./{self.name}/profiles/{self.quality}.lua", "w")
                 dump_file.write(self.featurecode)
@@ -2404,15 +1843,11 @@ end
 
                 for category in materials_features:
                     errorsend = "category."
-                    self.featurecode += (
-                        "\n \n" + f"--{category}"
-                    )  # puts said category as a commented title. solely for clarity purposes.
+                    self.featurecode += ("\n \n" + f"--{category}")  # puts said category as a commented title. solely for clarity purposes.
                     for feature in materials_features[category]:
                         errorsend = "feature."
                         feature_value = str(
-                            self.query(f"#{feature}_pm")
-                            .first()
-                            .__getattribute__("value")
+                            self.query(f"#{feature}_pm").first().__getattribute__("value")
                         )  # use of the private "__getattribute__"
                         # method to query the field's value.
                         errorsend = "query_value."
@@ -2425,21 +1860,13 @@ end
                             else:  # due to laziness, every feature_value is lowercased so that specifically bool values get lowercased,
                                 # thanks to lua's odd syntax.
                                 errorsend = "lowercased."
-                                self.featurecode += (
-                                    "\n" + f"{feature} = " + feature_value.lower()
-                                )
-                                self.query("#main-text-pm").first().update(
-                                    f"{self.featurecode}"
-                                )
+                                self.featurecode += ("\n" + f"{feature} = " + feature_value.lower())
+                                self.query("#main-text-pm").first().update(f"{self.featurecode}")
                                 errorsend = "query update 1."
                         else:  # disabled features are output as lua comments.
                             errorsend = "disabled."
-                            self.featurecode += (
-                                "\n" + f"--{feature} = " + feature_value.lower()
-                            )
-                            self.query("#main-text-pm").first().update(
-                                f"{self.featurecode}"
-                            )
+                            self.featurecode += ("\n" + f"--{feature} = " + feature_value.lower())
+                            self.query("#main-text-pm").first().update(f"{self.featurecode}")
                             errorsend = "query update 2."
 
                 ## Folder creation (if it does not exist yet) and lua file dumping.
@@ -2451,16 +1878,14 @@ end
                     else:
                         material_name += word
 
-                if f"{self.name}" not in os.listdir():
+                if f"{self.name}" not in os.listdir() or f"{self.name}/materials" not in os.listdir():
                     os.makedirs(f"{self.name}/materials")
                 dump_file = open(f"./{self.name}/materials/{self.material}.lua", "w")
                 dump_file.write(self.featurecode)
                 self.copy_to_clipboard(self.featurecode)
 
             except:  # if not successful, displays the following in the right panel.
-                self.featurecode = (
-                    errorsend + "\nPlease fill any empty information field(s)."
-                )
+                self.featurecode = (errorsend + "\nPlease fill any empty information field(s).")
                 self.query("#main-text-pm").first().update(f"{self.featurecode}")
 
         if event.button.id == "send-printer":
@@ -2469,21 +1894,15 @@ end
             try:
                 errorsend = "start"
                 self.printercode += "--Printer functions for " + self.name + "\n"
-                self.printercode += (
-                    "--Created on " + datetime.now().strftime("%x") + "\n \n"
-                )
+                self.printercode += ("--Created on " + datetime.now().strftime("%x") + "\n \n")
                 self.printercode += "output(';FLAVOR:Marlin') \n"
-                self.printercode += (
-                    "output(';Layer height: ' .. round(z_layer_height_mm,2)) \n"
-                )
-                self.printercode += """output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\\n')"""
-                self.printercode += "--//////////////////////////////////////////////////Defining main variables \n"
+                self.printercode += ("output(';Layer height: ' .. round(z_layer_height_mm, 2)) \n")
+                self.printercode += """output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\\n') \n \n"""
+                self.printercode += "--//////////////////////////////////////////////////Defining main variables"
 
                 for variable in main_variables:
                     errorsend = "var"
-                    variable_value = str(
-                        self.query(f"#{variable}").first().__getattribute__("value")
-                    )  # use of the private "__getattribute__"
+                    variable_value = str(self.query(f"#{variable}").first().__getattribute__("value"))  # use of the private "__getattribute__"
                     errorsend = "query var"
                     self.printercode += "\n" + f"{variable} = " + variable_value.lower()
 
@@ -2509,15 +1928,17 @@ path_type = {
                 self.printercode += "-----------------------"
                 self.printercode += self.footer + "\n"
 
-                errorsend += "fuck this shit\n"
-                for function_category in function_dict:
-                    errorsend += "fuck that shit\n"
-                    self.printercode += f"--################################################## {function_category}"
-                    errorsend = "fuck MY shit\n"
-                    for function in function_dict[function_category]:
-                        errorsend += f"fuck YOUR SHIT {function}"
+                errorsend += "did footer\n"
+                for function_category in self.function_dict:
+                    errorsend += "function category\n"
+                    self.printercode += f"\n--################################################## {function_category}"
+                    errorsend = "got to function dumping\n"
+                    for function in self.function_dict[function_category]:
+                        errorsend += f"one of your functions didn't get dumped {function}"
                         self.printercode += self.__getattribute__(function)
                         self.printercode += "-----------------------"
+
+                self.printercode += '\n \n' + self.util_functions 
 
                 ## Folder creation (if it does not exist yet) and lua file dumping.
                 errorsend = "dumping"
@@ -2533,169 +1954,92 @@ path_type = {
                         os.makedirs(f"{name}")
                     dump_file = open(f"./{name}/printer.lua", "w")
                     dump_file.write(self.printercode)
-                    self.copy_to_clipboard(self.printercode)
+                    # self.copy_to_clipboard(self.printercode)
             except:
                 # if not successful, displays the following log in the right panel.
                 self.printercode = errorsend + "\nNOPE."
                 self.query("#main-text").first().update(f"{self.printercode}")
 
     ###lua code refreshers
-    def refresh_header(
-        self, accel_Enabled, auto_bed_leveling_Enabled, reload_bed_mesh_Enabled
-    ) -> None:
-        self.header = """function header()
+    def refresh_header(self) -> None:
+        self.header = marlin_header_dict['start_header']
 
-    -- called to create the header of the G-Code file.
-
-    output('G21 ; set units to millimeters')
-    output('G90 ; use absolute coordinates')
-    output('M82 ; extruder absolute mode') --constant
-        """
-
-        if accel_Enabled:
-            self.header += """
-    --set limits
-    output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
-    output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
-    output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
-    output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-    output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-        """
-        self.header += """
-    output('')
-
-    output('M109 R' .. extruder_temp_degree_c[extruders[0]] .. ' ; set extruder temp')
-    output('M190 S' .. bed_temp_degree_c .. ' ; wait for bed temp')
-    """
+        if self.enable_acceleration:
+            self.header += marlin_header_dict['enable_acceleration']
+        self.header += marlin_header_dict['temp_setup']
+        
         if self.heated_chamber:
-            self.header += """
-    output('M191 R' .. chamber_temp_degree_c .. ' ; set and wait chamber temperature')
-"""
-        self.header += """
-    output('M107')
-    output('G28 ; home all without mesh bed level')
+            self.header += marlin_header_dict['heated_chamber']
+            
+        self.header += marlin_header_dict['home_all']
 
-    """
-        if auto_bed_leveling_Enabled and not reload_bed_mesh_Enabled:
-            self.header += """
-    --start auto bed leveling
-    output('G29 ; auto bed leveling')
-    output('G0 F' .. travel_speed_mm_per_sec * 60 .. 'X0 Y0 ; back to the origin to begin the purge')
-    """
-        elif reload_bed_mesh_Enabled:
-            self.header += """
-    --start auto bed leveling and reload previous bed mesh
-    output('M420 S1 ; enable bed leveling (was disabled y G28)')
-    output('M420 L ; load previous bed mesh')
-    """
+        if self.auto_bed_leveling and not self.reload_bed_mesh:
+            self.header += marlin_header_dict['auto_bed_leveling']
 
-        self.header += """
-    output('M109 S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
+        elif self.auto_bed_leveling and self.reload_bed_mesh:
+            self.header += marlin_header_dict['auto_bed_leveling_and_reload_bed_mesh']
 
-    output('')
-    --set Linear Advance k-factor
-    output('M900 K' .. filament_linear_adv_factor .. ' ; Linear/Pressure advance')
-
-    current_frate = travel_speed_mm_per_sec * 60
-    changed_frate = true
-
-end
-"""
+        self.header += marlin_header_dict['end_header']
 
         self.query("#header").first().__setattr__("text", self.header)
 
-    def refresh_footer(self, accel_Enabled) -> None:
-        self.footer = """
-function footer()
-    --called to create the footer of the G-Code file.
+    def refresh_footer(self) -> None:
+        self.footer = marlin_footer_dict['start_footer']
 
-    output('')
-    output('G4 ; wait')
-    output('M104 S0 ; turn off temperature')
-    output('M140 S0 ; turn off heatbed')
-    """
         if self.heated_chamber:
-            self.footer += """
-    output('M141 S0 ; turn off heated chamber')
-"""
-        self.footer += """
+            self.footer += marlin_footer_dict['heated_chamber']
 
-    output('M107 ; turn off fan')
-    output('G28 X Y ; home X and Y axis')
-    output('G91')
-    output('G0 Z 10') -- move in Z to clear space between print and nozzle
-    output('G90')
-    output('M84 ; disable motors')
-    output('')
-    """
+        self.footer += marlin_footer_dict['home_all']
 
-        if accel_Enabled:
-            self.footer += """
-    --set limits back to original values.
-    output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
-    output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
-    output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
-    output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-    output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-            """
-        self.footer += """
-end
-"""
+        if self.enable_acceleration:
+            self.footer += marlin_footer_dict['enable_acceleration']
+
+        self.footer += marlin_footer_dict['end_footer']
 
         self.query("#footer").first().__setattr__("text", self.footer)
 
 
-
-    def refresh_select_extruder(self, extruder_count) -> None:
-        if extruder_count > 1:
-            self.select_extruder += """
-    local n = nozzle_diameter_mm[extruder]
-
-    """
+    def refresh_select_extruder(self) -> None:
+        self.select_extruder = marlin_select_extruder_dict['start_select_extruder']
+        if self.extruder_count > 1:
+            self.select_extruder = marlin_select_extruder_dict['multi_extruders']
         else:
-            self.select_extruder += """
-    local n = nozzle_diameter_mm_0
-"""
+            self.select_extruder = marlin_select_extruder_dict['solo_extruder']
 
-        self.select_extruder += """
-    local n = nozzle_diameter_mm_0 -- should be changed to nozzle_diameter_mm[extruder] when available
+        self.select_extruder += marlin_select_extruder_dict['end_select_extruder']
+
+        self.query("#select_extruder").first().__setattr__("text", self.select_extruder)
+
+
+    def refresh_move_xyz(self) -> None:
+        self.move_xyz = marlin_move_xyz_dict['start_move_xyz']
+
+        if self.use_per_path_accel:
+            self.move_xyz += marlin_move_xyz_dict['use_per_path_accel']
+
+        self.move_xyz += marlin_move_xyz_dict['end_move_xyz']
+
+        self.query("#move_xyz").first().__setattr__("text", self.move_xyz)
+
+    def refresh_move_xyze(self) -> None:
+        self.move_xyze = marlin_move_xyze_dict['start_move_xyze']
+
+        if self.craftware_debug:  
+            self.move_xyze += marlin_move_xyze_dict['craftware_debug_true']
+        else:
+            self.move_xyze += marlin_move_xyze_dict['craftware_debug_false']
+
+        self.move_xyze += marlin_move_xyze_dict['path_type']
+
+        if self.use_per_path_accel:
+            self.move_xyze += marlin_move_xyze_dict['use_per_path_accel']
+
+        self.move_xyze += marlin_move_xyze_dict['end_move_xyze']
+
+        self.query("#move_xyze").first().__setattr__("text", self.move_xyze)
     
-    local x_pos = 0.1
-    local y_pos = 20
-    local z_pos = 0.3
-  
-    local l1 = 200 -- length of 1st purge line
-    local l2 = 200 -- length of 2nd purge line
-  
-    local w = n * 1.2 -- width of the purge line
-  
-  
-    local e_value = 0.0
-  
-    output('\\n; purge extruder')
-    output('G0 F6000 X' .. f(x_pos) .. ' Y' .. f(y_pos) ..' Z' .. f(z_pos))
-    output('G92 E0')
-  
-    y_pos = y_pos + l1
-    e_value = round(e_from_dep(l1, w, z_pos, extruder),2)
-    output('G1 F1500 Y' .. f(y_pos) .. ' E' .. e_value .. '   ; draw 1st line') -- purge start
-  
-    x_pos = x_pos + n*0.75
-    output('G1 F5000 X' .. f(x_pos) .. '   ; move a little to the side')
-  
-    y_pos = y_pos - l2
-    e_value = e_value + round(e_from_dep(l2, w, z_pos, extruder),2)
-    output('G1 F1000 Y' .. f(y_pos) .. ' E' .. e_value .. '  ; draw 2nd line') -- purge end
-    output('G92 E0')
-    output('; done purging extruder\\n')
-  
-    current_extruder = extruder
-    current_frate = travel_speed_mm_per_sec * 60
-    changed_frate = true
-  end
-  
-  """
-
+    
+    
     def on_mount(self) -> None:
         """on mount -> when the app initialises on the terminal.
         Only used here to define stylistic attributes such as screen background color.
@@ -2707,9 +2051,11 @@ end
         for key in tooltips:
             self.query(f"#{key}").first().tooltip = tooltips[key]
 
-        self.refresh_header(False, False, False)
-        self.refresh_footer(False)
-        self.refresh_footer(1)
+        self.refresh_header()
+        self.refresh_footer()
+        self.refresh_select_extruder()
+        self.refresh_move_xyz()
+        self.refresh_move_xyze()
 
 
 def isNotSpaces(text: str):

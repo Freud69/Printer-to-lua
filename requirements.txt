@@ -1,2 +1,2 @@
-textual==0.63.6
+textual[syntax]==0.64.0
 tree_sitter_languages==1.9.1
