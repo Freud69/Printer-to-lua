@@ -1,8 +1,8 @@
---Custom profile for testProfile
---Created on 06/08/24
+--Custom profile for acc
+--Created on 06/10/24
  
 --Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper; 3 = Others
-firmware = 1
+firmware = 0
  
 --build_area_dimensions
 bed_circular = false
@@ -69,13 +69,13 @@ x_max_acc = 3000
 y_max_acc = 3000
 z_max_acc = 75
 e_max_acc = 3000
---classic_jerk = false
---default_jerk = 20
---infill_jerk = 20
-default_junction_deviation = 0.0533
-perimeter_junction_deviation = 0.1067
-infill_junction_deviation = 0.0533
-travel_junction_deviation = 0.0533
+classic_jerk = true
+default_jerk = 20
+infill_jerk = 20
+--default_junction_deviation = 0.0533
+--perimeter_junction_deviation = 0.1067
+--infill_junction_deviation = 0.0533
+--travel_junction_deviation = 0.0533
  
 --misc_default_settings
 enable_active_temperature_control = true

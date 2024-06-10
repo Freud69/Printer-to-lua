@@ -236,11 +236,17 @@ function move_xyze(x,y,z,e)
 -- acceleration management
     if use_per_path_accel then
       if     path_is_perimeter or path_is_shell 
-            then set_acceleration(perimeter_acc, default_jerk)
+            then
+              output('M204 P' .. perimeter_acc)
+              output('M205 J' .. perimeter_junction_deviation)
       elseif path_is_infill                     
-            then set_acceleration(infill_acc, infill_jerk)
+            then
+              output('M204 P' .. infill_acc)
+              output('M205 J' .. infill_junction_deviation)
       elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
-            then set_acceleration(default_acc, default_jerk)
+            then
+              output('M204 P' .. default_acc)
+              output('M205 J' .. default_junction_deviation)
       end
     end
 end

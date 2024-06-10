@@ -18,9 +18,12 @@ default_features = {
 # intermediate variables used to define features rescaled from others
 default_printing_speed = 60
 default_jerk = 20
+infill_jerk = 20
 default_accel = 3000
 default_layer_height = 0.2
 default_nozzle_diameter = 0.4
+
+
 # main dictionary with every feature needed to print, at least for most printers.
 features_dict = {
     "retraction_settings": {
@@ -86,7 +89,7 @@ features_dict = {
         "perimeter_junction_deviation": round(
             0.4 * (default_jerk**2 / default_accel), 4
         ),
-        "infill_junction_deviation": round(0.4 * (default_jerk**2 / default_accel), 4),
+        "infill_junction_deviation": round(0.4 * (infill_jerk**2 / default_accel), 4),
         "travel_junction_deviation": round(0.4 * (default_jerk**2 / default_accel), 4),
     },
     "misc_default_settings": {
@@ -109,6 +112,7 @@ features_dict = {
     },
 }
 
+#features for the Profiles folder
 quality_features = {
     "layer_thickness_changes": {"z_layer_height_mm": 0.2},
     "speed_changes": {
@@ -123,7 +127,7 @@ quality_features = {
     },
 }
 
-
+#features for the Materials folder
 materials_features = {
     "retraction_changes": {
         "filament_priming_mm": 0.8,
@@ -145,7 +149,7 @@ materials_features = {
 }
 
 # list of advanced features that are mostly rescaled values of defining features, hidden by default.
-# Used later to enable/disable their display.
+# Used in main.py to enable/disable their display.
 advanced_features = [
     "enable_active_temperature_control",
     "filament_linear_adv_factor",
@@ -168,6 +172,7 @@ advanced_features += [
 ]
 advanced_features += [feature for feature in features_dict["additional_features"]]
 
+#list of features disabled on startup. They may be so because they depend on another feature
 start_as_disabled = [
     "default_jerk",
     "infill_jerk",

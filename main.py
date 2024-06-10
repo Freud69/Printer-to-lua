@@ -5,6 +5,7 @@ from marlin_dict import (marlin_header_dict,
                          marlin_move_xyz_dict,
                          marlin_move_xyze_dict, 
                          marlin_function_dict)
+
 from rrf_dict import rrf_function_dict
 from klipper_dict import klipper_function_dict
 from tooltips import tooltips
@@ -38,14 +39,23 @@ from textual.validation import Function
 
 ###Textual GUI
 class gui(App):
-    """Subclass of Textual's integrated App class.
-    Gives access to reactive variables that can change automatically.
+    """Subclass of Textual's integrated App class.\n
+    Gives access to reactive variables that can change automatically.\n
     Works by yielding predefined widgets to its compose function, for it to "mount it" and display the app in a terminal.
     """
 
     ENABLE_COMMAND_PALETTE = False
     # reactive variables. Regularly modified throughout the creation process
-    featurecode = reactive(
+    function_dict = marlin_function_dict #dictionary of functions. By default set on marlin. #changed according to FW changes.
+
+    #dictionaries for each highly conditioned functions. They all have a refresh function that actively changes their content.
+    header_dict = marlin_header_dict 
+    footer_dict = marlin_footer_dict
+    select_extruder_dict = marlin_select_extruder_dict
+    move_xyz_dict = marlin_move_xyz_dict
+    move_xyze_dict = marlin_move_xyze_dict
+
+    featurecode = reactive(                             #Used as a log-text on the right pane
         "Begin by entering your printer's name.",
         always_update=True,
         repaint=True,
@@ -74,7 +84,7 @@ class gui(App):
     nozzle_diameter = reactive(str(default_features['extruder']['nozzle_diameter_mm_0']), 
                                always_update=True, repaint=True, layout=True)
     
-    function_dict = marlin_function_dict
+    
     header = reactive("", always_update=True, repaint=True, layout=True)
     footer = reactive("", always_update=True, repaint=True, layout=True)
     comment = reactive(
@@ -190,10 +200,11 @@ class gui(App):
     )
 
     util_functions = reactive(
-    util_functions_text,
-    always_update=True,
-    layout=True,
-    repaint=True)
+        util_functions_text,
+        always_update=True,
+        layout=True,
+        repaint=True
+    )
 
     TITLE = "Profile to Lua"  # Header's title
     CSS_PATH = "style.tcss"  # Graphic elements are managed through tcss files, much like web css.
@@ -418,7 +429,7 @@ class gui(App):
                             Select(
                                 prompt="filament diameter (mm)",
                                 id="filament_diameter_mm_0",
-                                options=[("1.75", 1.75), ("3.0", 3.0)],
+                                options=[("1.75", 1.75), ("2.85", 2.85)],
                                 allow_blank=False,
                             ),
                             classes="horizontal-layout",
@@ -817,7 +828,7 @@ class gui(App):
                             Select(
                                 prompt="filament diameter (mm)",
                                 id="filament_diameter_mm_0_pm",
-                                options=[("1.75", 1.75), ("3.0", 3.0)],
+                                options=[("1.75", 1.75), ("2.85", 2.85)],
                                 allow_blank=False,
                             ),
                             classes="horizontal-layout",
@@ -1577,7 +1588,7 @@ class gui(App):
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         self.__dict__[event.text_area.id] = event.text_area.text
 
-    ###Output handler
+###Output handler
 
     @on(Button.Pressed)  # handles the case of the "create" button being pressed.
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -1960,7 +1971,7 @@ path_type = {
                 self.printercode = errorsend + "\nNOPE."
                 self.query("#main-text").first().update(f"{self.printercode}")
 
-    ###lua code refreshers
+###lua code refreshers
     def refresh_header(self) -> None:
         self.header = marlin_header_dict['start_header']
 
