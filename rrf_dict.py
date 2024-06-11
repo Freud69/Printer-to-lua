@@ -14,6 +14,7 @@ rrf_header_dict = {
     output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
     output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
     output('M205 X' .. default_jerk .. ' Y' .. default_jerk .. ' ; sets XY Jerk')
+    --output('M566 X' .. default_jerk*60 .. ' Y' .. default_jerk*60 .. ' ; sets XY Jerk')
         """,
       
     'temp_setup':"""
@@ -36,14 +37,13 @@ rrf_header_dict = {
     
     'auto_bed_leveling':"""
     --start auto bed leveling
-    output('G29 ; auto bed leveling')
+    output('G29 S0; mesh bed leveling')
     output('G0 F' .. travel_speed_mm_per_sec * 60 .. 'X0 Y0 ; back to the origin to begin the purge')
         """,
     
     'auto_bed_leveling_and_reload_bed_mesh':"""
     --start auto bed leveling and reload previous bed mesh
-    output('M420 S1 ; enable bed leveling (was disabled y G28)')
-    output('M420 L ; load previous bed mesh')
+    output('G29 S1 P"heightmap.csv"; load default bed mesh')
         """,
 
     'end_header':"""
@@ -51,7 +51,7 @@ rrf_header_dict = {
 
     output('')
     --set Linear Advance k-factor
-    output('M900 K' .. filament_linear_adv_factor .. ' ; Linear/Pressure advance')
+    output('M572 D0 S' .. filament_linear_adv_factor .. ' ; Linear/Pressure advance')
 
     current_frate = travel_speed_mm_per_sec * 60
     changed_frate = true
@@ -235,11 +235,22 @@ function move_xyze(x,y,z,e)
 -- acceleration management
     if use_per_path_accel then
       if     path_is_perimeter or path_is_shell 
-            then set_acceleration(perimeter_acc, default_jerk)
+            then
+              output('M204 P' .. perimeter_acc)
+              output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
+              --output('M566 X' .. jerk_value*60 .. ' Y' .. jerk_value*60)
+
       elseif path_is_infill                     
-            then set_acceleration(infill_acc, infill_jerk)
+            then
+              output('M204 P' .. infill_acc)
+              output('M205 X' .. infill_jerk .. ' Y' .. infill_jerk)
+              --output('M566 X' .. jerk_value*60 .. ' Y' .. jerk_value*60)
+
       elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
-            then set_acceleration(default_acc, default_jerk)
+            then
+              output('M204 P' .. default_acc)
+              output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
+              --output('M566 X' .. default_jerk*60 .. ' Y' .. default_jerk*60)
       end
     end
 end

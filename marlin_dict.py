@@ -14,8 +14,13 @@ marlin_header_dict = {
     output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
     output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
     output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-    output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-        """,
+    """ ,
+  'jerk_true':"""
+      output('M205 X' .. default_jerk .. ' Y' .. default_jerk .. ' ; sets XY Jerk')
+    """ ,
+  'jerk_false':"""
+      output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
+    """ ,
       
     'temp_setup':"""
     output('')
@@ -93,8 +98,13 @@ function footer()
     output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
     output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
     output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-    output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-  """,
+    """ ,
+  'jerk_true':"""
+      output('M205 X' .. default_jerk .. ' Y' .. default_jerk .. ' ; sets XY Jerk')
+    """ ,
+  'jerk_false':"""
+      output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
+    """ ,
 
   'end_footer':"""
 end
@@ -238,15 +248,27 @@ function move_xyze(x,y,z,e)
       if     path_is_perimeter or path_is_shell 
             then
               output('M204 P' .. perimeter_acc)
-              output('M205 J' .. perimeter_junction_deviation)
+              if classic_jerk == true then
+                output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
+              else
+                output('M205 J' .. perimeter_junction_deviation)
+              
       elseif path_is_infill                     
             then
               output('M204 P' .. infill_acc)
-              output('M205 J' .. infill_junction_deviation)
+              if classic_jerk == true then
+                output('M205 X' .. infill_jerk .. ' Y' .. infill_jerk)
+              else
+                output('M205 J' .. infill_junction_deviation)
+              
       elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
             then
               output('M204 P' .. default_acc)
-              output('M205 J' .. default_junction_deviation)
+              if classic_jerk == true then
+                output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
+              else
+                output('M205 J' .. default_junction_deviation)
+              
       end
     end
 end

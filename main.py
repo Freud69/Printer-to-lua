@@ -6,8 +6,19 @@ from marlin_dict import (marlin_header_dict,
                          marlin_move_xyze_dict, 
                          marlin_function_dict)
 
-from rrf_dict import rrf_function_dict
-from klipper_dict import klipper_function_dict
+from rrf_dict import (rrf_header_dict,
+                      rrf_footer_dict,
+                      rrf_select_extruder_dict,
+                      rrf_move_xyz_dict,
+                      rrf_move_xyze_dict,
+                      rrf_function_dict)
+
+from klipper_dict import (klipper_header_dict,
+                          klipper_footer_dict,
+                          klipper_select_extruder_dict,
+                          klipper_move_xyz_dict,
+                          klipper_move_xyze_dict,
+                          klipper_function_dict)
 from tooltips import tooltips
 from features_data import (
                             default_features, features_dict,
@@ -118,7 +129,7 @@ class gui(App):
         layout=True,
     )
     select_extruder = reactive(
-        function_dict["EXTRUDER"]["select_extruder"],
+        '',
         always_update=True,
         repaint=True,
         layout=True,
@@ -148,13 +159,13 @@ class gui(App):
         layout=True,
     )
     move_xyz = reactive(
-        function_dict["MOVEMENTS"]["move_xyz"],
+        '',
         always_update=True,
         repaint=True,
         layout=True,
     )
     move_xyze = reactive(
-        function_dict["MOVEMENTS"]["move_xyze"],
+        '',
         always_update=True,
         repaint=True,
         layout=True,
@@ -184,7 +195,10 @@ class gui(App):
         layout=True,
     )
     wait = reactive(
-        function_dict["WAIT"]["wait"], always_update=True, repaint=True, layout=True
+        function_dict["WAIT"]["wait"],
+          always_update=True,
+          repaint=True,
+          layout=True
     )
     set_and_wait_extruder_temperature = reactive(
         function_dict["MIXING PARAMETERS"]["set_and_wait_extruder_temperature"],
@@ -282,7 +296,6 @@ class gui(App):
                                     ("Marlin", 0),
                                     ("Rep Rap", 1),
                                     ("Klipper", 2),
-                                    ("Other", 3),
                                 ],
                                 allow_blank=False,
                             ),
@@ -1131,11 +1144,13 @@ class gui(App):
 
         if event.switch.id == 'use_per_path_accel':
             self.use_per_path_accel = event.value
+            self.refresh_move_xyz()
             self.refresh_move_xyze()
 
         if event.switch.id == 'craftware_debug':
             self.craftware_debug = event.value
             self.refresh_move_xyze()
+
         if (event.switch.id == "advanced_mode"):# toggles advanced mode and displays hidden feature fields.
             if event.switch.value == False:
                 self.query(f"#horizontal_enable_acceleration").first().display = False
@@ -1276,19 +1291,49 @@ class gui(App):
             self.firmware = event.value
             if event.value == 0:
                 self.function_dict = marlin_function_dict
+                self.header_dict = marlin_header_dict
+                self.footer_dict = marlin_footer_dict
+                self.select_extruder_dict= marlin_select_extruder_dict
+                self.move_xyz_dict = marlin_move_xyz_dict
+                self.move_xyze_dict = marlin_move_xyze_dict
+                
             elif event.value == 1:
                 self.function_dict = rrf_function_dict
+                self.header_dict = rrf_header_dict
+                self.footer_dict = rrf_footer_dict
+                self.select_extruder_dict= rrf_select_extruder_dict
+                self.move_xyz_dict = rrf_move_xyz_dict
+                self.move_xyze_dict = rrf_move_xyze_dict
             else:
                 self.function_dict = klipper_function_dict
-            if (
-                event.value != 0
-            ):  # 0 is Marlin; only Marlin supports classic Jerk, and Klipper uses SCV
+                self.header_dict = klipper_header_dict
+                self.footer_dict = klipper_footer_dict
+                self.select_extruder_dict= klipper_select_extruder_dict
+                self.move_xyz_dict = klipper_move_xyz_dict
+                self.move_xyze_dict = klipper_move_xyze_dict
+
+            if (event.value != 0): # if not Marlin
+                self.query("#classic_jerk").first().__setattr__("value", True)
                 self.query("#classic_jerk").first().disabled = True
-                self.query("#default_jerk").first().disabled = True
-                self.query("#infill_jerk").first().disabled = True
+                self.query("#default_jerk").first().disabled = False
+                self.query("#infill_jerk").first().disabled = False
+                self.query("#default_junction_deviation").first().disabled = True
+                self.query("#perimeter_junction_deviation").first().disabled = True
+                self.query("#infill_junction_deviation").first().disabled = True
+                self.query("#travel_junction_deviation").first().disabled = True
             else:
                 self.query("#classic_jerk").first().__setattr__("value", False)
                 self.query("#classic_jerk").first().disabled = False
+                self.query("#default_junction_deviation").first().disabled = False
+                self.query("#perimeter_junction_deviation").first().disabled = False
+                self.query("#infill_junction_deviation").first().disabled = False
+                self.query("#travel_junction_deviation").first().disabled = False
+
+            self.refresh_header()
+            self.refresh_footer()
+            self.refresh_move_xyz()
+            self.refresh_move_xyze()
+            self.refresh_select_extruder()
 
         # default quality values
         if event.select.id == "quality":
@@ -1604,7 +1649,7 @@ class gui(App):
                     "--Created on " + datetime.now().strftime("%x") + "\n \n"
                 )
                 self.featurecode += (
-                    "--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper; 3 = Others\n"
+                    "--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;\n"
                 )
                 self.featurecode += (
                     "firmware = "
@@ -1906,7 +1951,8 @@ class gui(App):
                 errorsend = "start"
                 self.printercode += "--Printer functions for " + self.name + "\n"
                 self.printercode += ("--Created on " + datetime.now().strftime("%x") + "\n \n")
-                self.printercode += "output(';FLAVOR:Marlin') \n"
+                self.printercode += "--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;\n"
+                self.printercode += "firmware = " + f'{self.query("#firmware").first().__getattribute__("value")}' + "\n"
                 self.printercode += ("output(';Layer height: ' .. round(z_layer_height_mm, 2)) \n")
                 self.printercode += """output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\\n') \n \n"""
                 self.printercode += "--//////////////////////////////////////////////////Defining main variables"
@@ -1973,79 +2019,92 @@ path_type = {
 
 ###lua code refreshers
     def refresh_header(self) -> None:
-        self.header = marlin_header_dict['start_header']
+        self.header = self.header_dict['start_header']
 
         if self.enable_acceleration:
-            self.header += marlin_header_dict['enable_acceleration']
-        self.header += marlin_header_dict['temp_setup']
+            self.header += self.header_dict['enable_acceleration']
+            if self.firmware == 0:
+                if self.classic_jerk:
+                    self.header += self.header_dict['jerk_true']
+                else:
+                    self.header += self.header_dict['jerk_false']
+
+        self.header += self.header_dict['temp_setup']
         
         if self.heated_chamber:
-            self.header += marlin_header_dict['heated_chamber']
-            
-        self.header += marlin_header_dict['home_all']
+            self.header += self.header_dict['heated_chamber']
+
+        if self.firmware == 0:   
+            self.header += self.header_dict['home_all']
 
         if self.auto_bed_leveling and not self.reload_bed_mesh:
-            self.header += marlin_header_dict['auto_bed_leveling']
+            self.header += self.header_dict['auto_bed_leveling']
 
         elif self.auto_bed_leveling and self.reload_bed_mesh:
-            self.header += marlin_header_dict['auto_bed_leveling_and_reload_bed_mesh']
+            self.header += self.header_dict['auto_bed_leveling_and_reload_bed_mesh']
 
-        self.header += marlin_header_dict['end_header']
+        self.header += self.header_dict['end_header']
 
         self.query("#header").first().__setattr__("text", self.header)
 
     def refresh_footer(self) -> None:
-        self.footer = marlin_footer_dict['start_footer']
+        self.footer = self.footer_dict['start_footer']
 
         if self.heated_chamber:
-            self.footer += marlin_footer_dict['heated_chamber']
+            self.footer += self.footer_dict['heated_chamber']
 
-        self.footer += marlin_footer_dict['home_all']
+        if self.firmware == 0:
+            self.footer += self.footer_dict['home_all']
 
         if self.enable_acceleration:
-            self.footer += marlin_footer_dict['enable_acceleration']
+            self.footer += self.footer_dict['enable_acceleration']
+            if self.firmware == 0:
+                if self.classic_jerk:
+                    self.footer += self.footer_dict['jerk_true']
+                else:
+                    self.footer += self.footer_dict['jerk_false']
 
-        self.footer += marlin_footer_dict['end_footer']
+        self.footer += self.footer_dict['end_footer']
 
         self.query("#footer").first().__setattr__("text", self.footer)
 
 
     def refresh_select_extruder(self) -> None:
-        self.select_extruder = marlin_select_extruder_dict['start_select_extruder']
+        self.select_extruder = self.select_extruder_dict['start_select_extruder']
         if self.extruder_count > 1:
-            self.select_extruder = marlin_select_extruder_dict['multi_extruders']
+            self.select_extruder += self.select_extruder_dict['multi_extruders']
         else:
-            self.select_extruder = marlin_select_extruder_dict['solo_extruder']
+            self.select_extruder += self.select_extruder_dict['solo_extruder']
 
-        self.select_extruder += marlin_select_extruder_dict['end_select_extruder']
+        self.select_extruder += self.select_extruder_dict['end_select_extruder']
 
         self.query("#select_extruder").first().__setattr__("text", self.select_extruder)
 
 
     def refresh_move_xyz(self) -> None:
-        self.move_xyz = marlin_move_xyz_dict['start_move_xyz']
+        self.move_xyz = self.move_xyz_dict['start_move_xyz']
 
         if self.use_per_path_accel:
-            self.move_xyz += marlin_move_xyz_dict['use_per_path_accel']
+            self.move_xyz += self.move_xyz_dict['use_per_path_accel']
 
-        self.move_xyz += marlin_move_xyz_dict['end_move_xyz']
+        self.move_xyz += self.move_xyz_dict['end_move_xyz']
 
         self.query("#move_xyz").first().__setattr__("text", self.move_xyz)
 
     def refresh_move_xyze(self) -> None:
-        self.move_xyze = marlin_move_xyze_dict['start_move_xyze']
+        self.move_xyze = self.move_xyze_dict['start_move_xyze']
 
         if self.craftware_debug:  
-            self.move_xyze += marlin_move_xyze_dict['craftware_debug_true']
+            self.move_xyze += self.move_xyze_dict['craftware_debug_true']
         else:
-            self.move_xyze += marlin_move_xyze_dict['craftware_debug_false']
+            self.move_xyze += self.move_xyze_dict['craftware_debug_false']
 
-        self.move_xyze += marlin_move_xyze_dict['path_type']
+        self.move_xyze += self.move_xyze_dict['path_type']
 
         if self.use_per_path_accel:
-            self.move_xyze += marlin_move_xyze_dict['use_per_path_accel']
+            self.move_xyze += self.move_xyze_dict['use_per_path_accel']
 
-        self.move_xyze += marlin_move_xyze_dict['end_move_xyze']
+        self.move_xyze += self.move_xyze_dict['end_move_xyze']
 
         self.query("#move_xyze").first().__setattr__("text", self.move_xyze)
     
