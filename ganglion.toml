@@ -1,6 +1,0 @@
-[account]
-api_key = "Q412BYGS9VAN"
-
-[app.PrinterProfile]
-command = "python main.py"
-slug = "printertolua"

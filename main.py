@@ -76,7 +76,7 @@ class gui(App):
         repaint=True,
         layout=True,
     )  # stores our final result
-    printercode = reactive("", always_update=True, repaint=True, layout=True)
+    printercode = reactive("", always_update=True, repaint=True, layout=True) #same as featurecode but for the printer tab
 
     extruder_count = reactive(1, always_update=True, repaint=True, layout=True)
     name = reactive("", always_update=True, repaint=True, layout=True)
@@ -99,7 +99,7 @@ class gui(App):
     nozzle_diameter = reactive(str(default_features['extruder']['nozzle_diameter_mm_0']), 
                                always_update=True, repaint=True, layout=True)
     
-    
+    #reactive variables for the functions in the Printer tab
     header = reactive("", always_update=True, repaint=True, layout=True)
     footer = reactive("", always_update=True, repaint=True, layout=True)
     comment = reactive(
@@ -216,7 +216,6 @@ class gui(App):
         repaint=True,
         layout=True,
     )
-
     util_functions = reactive(      #Stores the utility functions
         util_functions_text,
         always_update=True,
