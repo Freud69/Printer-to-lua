@@ -1,4 +1,7 @@
 # dictionary for basic infos on the printer
+tmp_default_features = {
+}
+
 default_features = {
     "build_area_dimensions": {
         "bed_circular": False,
