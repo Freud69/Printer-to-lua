@@ -1,3 +1,10 @@
+#This dictionary contains the lua functions for the Marlin firmware
+#Header, Footer, Select Extruder, Move XYZ, Move XYZE have a separate dictionary as they depend on the Features tab
+#Each step is a separate entry in the dictionary.
+#If you modify the functions, make sure to update the python file accordingly
+#The functions are stored in a dictionary with the key as the function name and the value as the function definition
+#Functions in functions_dict are not dependent on the Features tab
+
 marlin_header_dict = {
     'start_header':"""function header()
 

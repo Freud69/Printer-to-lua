@@ -1,8 +1,13 @@
 --Custom profile for testProfile
---Created on 06/08/24
+--Created on 06/12/24
  
---Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper; 3 = Others
-firmware = 1
+--Additional features: 
+add_checkbox_setting('auto_bed_leveling', 'Auto Bed Leveling','Use G29 Auto Leveling if the machine is equipped with one (BLTouch, Pinda, capacitive sensor, etc.)')
+add_checkbox_setting(reload_bed_mesh', 'Reload the last bed-mesh','Reload the last saved bed-mesh if available)
+add_checkbox_setting('use_per_path_accel', 'Uses Per-Path Acceleration', 'Manage Accelerations depending of the current path type')
+add_setting('volumetric_flow', 'Volumetric Flow', 0, 20, 'Product of printing speed, layer height and nozzle diameter', 4.8)
+--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;
+firmware = 0
  
 --build_area_dimensions
 bed_circular = false
@@ -69,7 +74,7 @@ x_max_acc = 3000
 y_max_acc = 3000
 z_max_acc = 75
 e_max_acc = 3000
---classic_jerk = false
+classic_jerk = false
 --default_jerk = 20
 --infill_jerk = 20
 default_junction_deviation = 0.0533
@@ -90,7 +95,7 @@ enable_travel_straight = true
 --extruder_swap_retract_speed_mm_per_sec = 25
  
 --additional_features
-use_per_path_accel = false
+use_per_path_accel = true
 volumetric_flow = 4.8
-auto_bed_leveling = false
---reload_bed_mesh = false
+auto_bed_leveling = true
+reload_bed_mesh = false

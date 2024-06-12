@@ -19,7 +19,9 @@ from klipper_dict import (klipper_header_dict,
                           klipper_move_xyz_dict,
                           klipper_move_xyze_dict,
                           klipper_function_dict)
+
 from tooltips import tooltips
+
 from features_data import (
                             default_features, features_dict,
                             start_as_disabled, advanced_features,
@@ -50,7 +52,9 @@ from textual.validation import Function
 
 ###Textual GUI
 class gui(App):
-    """Subclass of Textual's integrated App class.\n
+    """
+    Main class for the GUI. It is the main class that will be called by the main.py file.
+    It is a subclass of the App class from the Textual library.
     Gives access to reactive variables that can change automatically.\n
     Works by yielding predefined widgets to its compose function, for it to "mount it" and display the app in a terminal.
     """
@@ -213,7 +217,7 @@ class gui(App):
         layout=True,
     )
 
-    util_functions = reactive(
+    util_functions = reactive(      #Stores the utility functions
         util_functions_text,
         always_update=True,
         layout=True,
@@ -224,11 +228,12 @@ class gui(App):
     CSS_PATH = "style.tcss"  # Graphic elements are managed through tcss files, much like web css.
 
     def compose(self) -> ComposeResult:
-        """Default and mandatory function used by Textual to compose the app's UI.
+        """
+        Default and mandatory function used by Textual to compose the app's UI.
         Defined by yielding Widgets from Textual to the console.
         When doing so, the terminal is temporarily inacessible and put in a special mode for Textual to exploit it.
-
-        Every widget is identified by its "id" attribute(str)."""
+        Every widget is identified by its "id" attribute(str).
+        """
 
         yield Header()  # Ui's header
         with TabbedContent():
@@ -661,7 +666,8 @@ class gui(App):
                             # Input widgets define an input field.
                             # its "type" attribute allows for active input restriction (either "text", "number", or "integer")
                             # its value is stored in a "value" attribute,
-                            # only accessible through private method "__getattribute__('value')" or publicly through event controls (down below)
+                            # only accessible through private method "__getattribute__('value')" or 
+                            #publicly through event controls (down below)
                             Select(
                                 prompt="Print quality",
                                 id="quality",
@@ -867,7 +873,7 @@ class gui(App):
 
                         yield fil_adv_fact
 
-                        # Other parameters. loops through quality_features to create remaining input fields.
+                        # Other parameters. loops through materials_features to create remaining input fields.
                         for category in materials_features:  # category is a key
                             tmp_key_words = [
                                 word for word in category.split("_")
@@ -925,9 +931,8 @@ class gui(App):
                                         classes="horizontal-layout",
                                         id=f"horizontal_{feature}_pm",
                                     )
-                                    # if feature in advanced_features: #features judged too advanced for a beginner
-                                    #     #are by default hidden
-                                    # feature_horizontal.display = False
+                                   
+                                   
                                     yield feature_horizontal
 
                                 else:  # bool features'case
@@ -964,13 +969,17 @@ class gui(App):
                             self.featurecode, id="main-text-pm", classes="text"
                         )
 
-            with TabPane("G-code translation", id="lua_tab") as lua_tab:
-                lua_tab.disabled = False
+            # PRINTER.LUA TAB
+            with TabPane("G-code translation", id="gcode_tab") as gcode_tab:
+                gcode_tab.disabled = False #gcode tab is always enabled
 
                 with Container(classes="app-grid-2"):
+                    #Next Static widget is a warning message to the user.
                     yield Static(
                         '''Code snippets are automatically generated according to parameters input in the Features tab. Please modify each function with extreme precaution as it will directly command your machine.''',
                             classes='warning')
+                    
+                    #Left side of the tab with default variables
                     with VerticalScroll(classes="features-2"):
                         yield Horizontal(
                             Static(
@@ -983,7 +992,8 @@ class gui(App):
                                 classes='important_toggle',
                                 animate= False),
                             classes='horizontal-layout')
-                        
+
+                    #Yielding variables from the main_variables dictionary to create input fields (except for path_type)    
                         for variable in main_variables:
                             if variable != "path_type":
                                 tmp_variable_words = [
@@ -1039,15 +1049,15 @@ class gui(App):
                                     yield variable_horizontal
                         
                         yield Button("[b]Create", id="send-printer", disabled=True)
-                        # variable_static = Static(f"Variable setup", classes="label", id=f'static_variable')
-                        # variable_area = TextArea.code_editor(text=f'{main_variables}', classes='features', language='python')
 
-                        # yield variable_static
-                        # yield variable_area
+                    #Right side of the tab with the printer.lua code editor
                     with VerticalScroll(classes="event-text-2", disabled=True, id='event-text-2'):
                         header_static = Static(
                             f"Header", classes="label", id=f"static_header"
                         )
+                        #TextArea widget is used to create a code editor. It is a multi-line input field.
+                        #Its highlighter is defined by the "language" attribute using Tree-sitter. 
+                        # #Set to "python" because the Lua one is deprecated.
                         header_area = TextArea.code_editor(
                             self.header,
                             classes="features",
@@ -1069,6 +1079,7 @@ class gui(App):
                         yield footer_static
                         yield footer_area
 
+                        #Yielding the functions from the function_dict dictionary to create code editor fields.
                         for category in self.function_dict:
                             for function in self.function_dict[category]:
                                 function_static = Static(
@@ -1088,6 +1099,9 @@ class gui(App):
     @on(Switch.Changed)  # decorator called upon receiving a change in one of the yielded Switch widgets.
     # this decorator declares the following method as a message handler.
     def on_switch_changed(self, event: Switch.Changed) -> None:  # the event class gets the switch's id, value, and more.
+        """
+        Handles the switch widgets' events.
+        """
 
         if (
             event.switch.id == "add_brim"
@@ -1209,6 +1223,9 @@ class gui(App):
                 self.query('#event-text-2').first().disabled = True
     @on(Select.Changed)  # handles the case of Select widgets being modified.
     def on_select_changed(self, event: Select.Changed) -> None:
+        """
+        Handles the select widgets' events.
+        """
 
         if (
             event.select.id == "extruder_count"
@@ -1287,6 +1304,7 @@ class gui(App):
             self.query('#volumetric_flow').first().__setattr__(
                     'value', f"{round(float(event.value)*float(self.layer_height)*float(self.printing_speed), 2)}")
 
+        # firmware selection drastically modifies the generated lua code.
         if event.select.id == "firmware":
             self.firmware = event.value
             if event.value == 0:
@@ -1312,6 +1330,7 @@ class gui(App):
                 self.move_xyz_dict = klipper_move_xyz_dict
                 self.move_xyze_dict = klipper_move_xyze_dict
 
+            #other firmwares have different handling of acceleration and jerk settings.
             if (event.value != 0): # if not Marlin
                 self.query("#classic_jerk").first().__setattr__("value", True)
                 self.query("#classic_jerk").first().disabled = True
@@ -1488,9 +1507,13 @@ class gui(App):
                 self.query(
                     "#first_layer_print_speed_mm_per_sec_pm"
                 ).first().__setattr__("value", str(30))
-
+    
     @on(Input.Changed)  # handles the case of input widgets being modified.
     def on_input_changed(self, event: Input.Changed) -> None:
+        """
+        Handles the input widgets' events.
+        """
+
         if event.input.id == "name":
             self.name = event.value
 
@@ -1631,12 +1654,21 @@ class gui(App):
 
     @on(TextArea.Changed)
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        """
+        Handles the text area widgets' events.
+        """
         self.__dict__[event.text_area.id] = event.text_area.text
 
 ###Output handler
 
     @on(Button.Pressed)  # handles the case of the "create" button being pressed.
     def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        Handles the button widgets' events.
+        Specifically the "create" button and how it outputs the lua code.
+        """
+
+        #Features tab output
         if event.button.id == "send":
             errorsend = ""
             self.featurecode = ""  # empties the output.
@@ -1648,6 +1680,7 @@ class gui(App):
                 self.featurecode += (
                     "--Created on " + datetime.now().strftime("%x") + "\n \n"
                 )
+
                 self.featurecode += (
                     "--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;\n"
                 )
@@ -1655,6 +1688,24 @@ class gui(App):
                     "firmware = "
                     + f'{self.query("#firmware").first().__getattribute__("value")}'
                 )
+
+                
+                self.featurecode += (
+                    "--Additional features: \n"
+                )  # puts a commented title for clarity purposes
+                self.featurecode += (
+                    "add_checkbox_setting('auto_bed_leveling', 'Auto Bed Leveling','Use G29 Auto Leveling if the machine is equipped with one (BLTouch, Pinda, capacitive sensor, etc.)')\n"
+                )
+                self.featurecode += (
+                    "add_checkbox_setting(reload_bed_mesh', 'Reload the last bed-mesh','Reload the last saved bed-mesh if available)\n"
+                )
+                self.featurecode += (
+                    "add_checkbox_setting('use_per_path_accel', 'Uses Per-Path Acceleration', 'Manage Accelerations depending of the current path type')\n"
+                )
+                self.featurecode += (
+                    "add_setting('volumetric_flow', 'Volumetric Flow', 0, 20, 'Product of printing speed, layer height and nozzle diameter', 4.8)\n \n"
+                )
+
 
                 for category in default_features:
                     errorsend = "category."
@@ -1773,14 +1824,14 @@ class gui(App):
                 dump_file = open(f"./{name}/features.lua", "w")
                 dump_file.write(self.featurecode)
                 self.copy_to_clipboard(self.featurecode)
-                self.query("#lua_tab").first().disabled = False
+                self.query("#gcode_tab").first().disabled = False
             except:  # if not successful, displays the following in the right panel.
                 self.featurecode = (
                     errorsend + "\nPlease fill any empty information field(s)."
                 )
                 self.query("#main-text").first().update(f"{self.featurecode}")
 
-        # QUALITY PROFILE
+        #Quality tab output
         if event.button.id == "send-pq":
             errorsend = ""
             self.featurecode = ""  # empties the output.
@@ -1856,7 +1907,7 @@ class gui(App):
                 )
                 self.query("#main-text-pq").first().update(f"{self.featurecode}")
 
-        # MATERIAL PROFILE
+        #Materials tab output
         if event.button.id == "send-pm":
             errorsend = ""
             self.featurecode = ""  # empties the output.
@@ -1944,6 +1995,8 @@ class gui(App):
                 self.featurecode = (errorsend + "\nPlease fill any empty information field(s).")
                 self.query("#main-text-pm").first().update(f"{self.featurecode}")
 
+
+        #Printer tab output
         if event.button.id == "send-printer":
             errorsend = ""
             self.printercode = ""
@@ -2019,6 +2072,10 @@ path_type = {
 
 ###lua code refreshers
     def refresh_header(self) -> None:
+        """
+        function to refresh the header of the printer.lua file.
+        """
+        
         self.header = self.header_dict['start_header']
 
         if self.enable_acceleration:
@@ -2047,7 +2104,12 @@ path_type = {
 
         self.query("#header").first().__setattr__("text", self.header)
 
+
     def refresh_footer(self) -> None:
+        """
+        function to refresh the footer of the printer.lua file.
+        """
+
         self.footer = self.footer_dict['start_footer']
 
         if self.heated_chamber:
@@ -2070,6 +2132,10 @@ path_type = {
 
 
     def refresh_select_extruder(self) -> None:
+        """
+        function to refresh the select_extruder function of the printer.lua file.
+        """
+
         self.select_extruder = self.select_extruder_dict['start_select_extruder']
         if self.extruder_count > 1:
             self.select_extruder += self.select_extruder_dict['multi_extruders']
@@ -2082,6 +2148,10 @@ path_type = {
 
 
     def refresh_move_xyz(self) -> None:
+        """
+        function to refresh the move_xyz function of the printer.lua file.
+        """
+
         self.move_xyz = self.move_xyz_dict['start_move_xyz']
 
         if self.use_per_path_accel:
@@ -2091,7 +2161,12 @@ path_type = {
 
         self.query("#move_xyz").first().__setattr__("text", self.move_xyz)
 
+
     def refresh_move_xyze(self) -> None:
+        """
+        function to refresh the move_xyze function of the printer.lua file.
+        """
+
         self.move_xyze = self.move_xyze_dict['start_move_xyze']
 
         if self.craftware_debug:  
@@ -2111,8 +2186,10 @@ path_type = {
     
     
     def on_mount(self) -> None:
-        """on mount -> when the app initialises on the terminal.
-        Only used here to define stylistic attributes such as screen background color.
+        """
+        Mounts the app.
+        Adds the tooltips to the widgets.
+        Initializes the header, footer, select_extruder, move_xyz and move_xyze.
         """
 
         self.screen.styles.background = "#E8E9F3"  # type: ignore
@@ -2129,6 +2206,10 @@ path_type = {
 
 
 def isNotSpaces(text: str):
+    """
+    Additional function to check if a text is not only spaces.
+    """
+
     return not (text.strip() == "")
 
 

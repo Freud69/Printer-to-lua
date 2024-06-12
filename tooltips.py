@@ -1,3 +1,6 @@
+#stores all the tooltips for the printer-to-lua project
+#not every feature has a tooltip yet, but they will be added as the project progresses
+
 tooltips = {
     "static_firmware": "Defines G-code flavor. Entirely defines your printer's behaviour and the way your 3d model is translated to G-code instructions understandable by the machine. ",
     "static_advanced_mode": "Toggle to hide/display advanced features. Please note they are mostly assigned according to parent-features, thus modifying them may yield unexpected results.",
