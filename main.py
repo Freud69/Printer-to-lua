@@ -1,34 +1,35 @@
 ###Imports
-from marlin_dict import (marlin_header_dict, 
+from dicts.marlin_dict import (marlin_header_dict, 
                          marlin_footer_dict, 
                          marlin_select_extruder_dict,
                          marlin_move_xyz_dict,
                          marlin_move_xyze_dict, 
                          marlin_function_dict)
 
-from rrf_dict import (rrf_header_dict,
+from dicts.rrf_dict import (rrf_header_dict,
                       rrf_footer_dict,
                       rrf_select_extruder_dict,
                       rrf_move_xyz_dict,
                       rrf_move_xyze_dict,
                       rrf_function_dict)
 
-from klipper_dict import (klipper_header_dict,
+from dicts.klipper_dict import (klipper_header_dict,
                           klipper_footer_dict,
                           klipper_select_extruder_dict,
                           klipper_move_xyz_dict,
                           klipper_move_xyze_dict,
                           klipper_function_dict)
 
-from tooltips import tooltips
+from dicts.tooltips_dict import tooltips
 
-from features_data import (
+#list and dictionaries of general features
+from dicts.features_data import (
                             default_features, features_dict,
                             start_as_disabled, advanced_features,
                             accel_features, quality_features,
                             materials_features
                             )
-from printer_data import main_variables, util_functions_text
+from dicts.printer_data import main_variables, util_functions_text
 
 from datetime import datetime
 import os
@@ -80,15 +81,11 @@ class gui(App):
 
     extruder_count = reactive(1, always_update=True, repaint=True, layout=True)
     name = reactive("", always_update=True, repaint=True, layout=True)
+    firmware = reactive(0, always_update=True, repaint=True, layout=True)
     quality = reactive("low", always_update=True, repaint=True, layout=True)
     material = reactive("pla", always_update=True, repaint=True, layout=True)
     enable_acceleration = reactive(False, always_update=True, repaint=True, layout=True)
     classic_jerk = reactive(False, always_update=True, repaint=True, layout=True)
-    auto_bed_leveling = reactive(False, always_update=True, repaint=True, layout=True)
-    reload_bed_mesh = reactive(False, always_update=True, repaint=True, layout=True)
-    use_per_path_accel = reactive(False, always_update=True, repaint=True, layout=True)
-    craftware_debug = reactive(main_variables["craftware_debug"], always_update=True, repaint=True, layout=True)
-    firmware = reactive(0, always_update=True, repaint=True, layout=True)
     heated_chamber = reactive(False, always_update=True, repaint=True, layout=True)
     volumetric_flow = reactive(str(features_dict['additional_features']['volumetric_flow']), 
                                always_update=True, repaint=True, layout=True)
@@ -99,7 +96,13 @@ class gui(App):
     nozzle_diameter = reactive(str(default_features['extruder']['nozzle_diameter_mm_0']), 
                                always_update=True, repaint=True, layout=True)
     
+    #custom_features
+    auto_bed_leveling = reactive(False, always_update=True, repaint=True, layout=True)
+    reload_bed_mesh = reactive(False, always_update=True, repaint=True, layout=True)
+    use_per_path_accel = reactive(False, always_update=True, repaint=True, layout=True)
+
     #reactive variables for the functions in the Printer tab
+    craftware_debug = reactive(main_variables["craftware_debug"], always_update=True, repaint=True, layout=True)
     header = reactive("", always_update=True, repaint=True, layout=True)
     footer = reactive("", always_update=True, repaint=True, layout=True)
     comment = reactive(
