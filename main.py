@@ -48,7 +48,7 @@ from textual.widgets import (
 )
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.reactive import reactive  # ce qui permet de créer des attributs réactifs pour nos classes
-from textual.validation import Function
+from textual.validation import Function, Number
 
 
 ###Textual GUI
@@ -332,14 +332,19 @@ class gui(App):
                             classes="container",
                         )
                         bed_radius_input = Input(
-                            value=f'{default_features["build_area_dimensions"]["bed_radius"]}',
+                            value=f'{default_features["build_area_dimensions"]["bed_radius"][0]}',
                             placeholder="bed radius",
                             id="bed_radius",
                             type="number",
                             max_length=4,
                             valid_empty=False,
+                            validators=[
+                                Function(
+                                    Number(default_features["build_area_dimensions"]["bed_radius"][2],
+                                           default_features["build_area_dimensions"]["bed_radius"][3]),
+                                    "Invalid number")]
                         )
-                        bed_radius_input.disabled = True
+                        bed_radius_input.disabled = default_features["build_area_dimensions"]["bed_radius"][5]
                         bed_radius_widget = Horizontal(
                             Static(
                                 "Bed Radius",
@@ -350,7 +355,7 @@ class gui(App):
                             classes="horizontal-layout",
                             id="horizontal_bed_radius",
                         )
-                        bed_radius_widget.display = False  # Hides the widget.
+                        bed_radius_widget.display = default_features["build_area_dimensions"]["bed_radius"][4]  # Hides the widget.
                         yield bed_radius_widget
 
                         yield Horizontal(
@@ -360,12 +365,17 @@ class gui(App):
                                 id="static_bed_size_x_mm",
                             ),
                             Input(
-                                value="310",
+                                value=default_features["build_area_dimensions"]["bed_size_x_mm"][0],
                                 placeholder="bed size x mm ",
                                 id="bed_size_x_mm",
                                 type="number",
                                 max_length=4,
                                 valid_empty=False,
+                                validators=[
+                                    Function(
+                                        Number(default_features["build_area_dimensions"]["bed_size_x_mm"][2],
+                                               default_features["build_area_dimensions"]["bed_size_x_mm"][3]),
+                                        "Invalid number")]
                             ),
                             classes="horizontal-layout",
                         )
@@ -376,12 +386,17 @@ class gui(App):
                                 id="static_bed_size_y_mm",
                             ),
                             Input(
-                                value="310",
+                                value=default_features["build_area_dimensions"]["bed_size_y_mm"][0],
                                 placeholder="bed size y mm ",
                                 id="bed_size_y_mm",
                                 type="number",
                                 max_length=4,
                                 valid_empty=False,
+                                validators=[
+                                    Function(
+                                        Number(default_features["build_area_dimensions"]["bed_size_y_mm"][2],
+                                               default_features["build_area_dimensions"]["bed_size_y_mm"][3]),
+                                        "Invalid number")]
                             ),
                             classes="horizontal-layout",
                         )
@@ -392,12 +407,17 @@ class gui(App):
                                 id="static_bed_size_z_mm",
                             ),
                             Input(
-                                value="350",
+                                value=default_features["build_area_dimensions"]["bed_size_z_mm"][0],
                                 placeholder="bed size z mm ",
                                 id="bed_size_z_mm",
                                 type="number",
                                 max_length=4,
                                 valid_empty=False,
+                                validators=[
+                                    Function(
+                                        Number(default_features["build_area_dimensions"]["bed_size_z_mm"][2],
+                                               default_features["build_area_dimensions"]["bed_size_z_mm"][3]),
+                                        "Invalid number")]
                             ),
                             classes="horizontal-layout",
                         )
@@ -507,17 +527,22 @@ class gui(App):
                                 id="static_filament_linear_adv_factor",
                             ),
                             Input(
-                                value="0.06",
+                                value=default_features["extruder"]["filament_linear_adv_factor"][0],
                                 placeholder="filament linear advance factor",
                                 id="filament_linear_adv_factor",
                                 type="number",
                                 max_length=2,
                                 valid_empty=False,
+                                validators=[
+                                    Function(
+                                        Number(default_features["extruder"]["filament_linear_adv_factor"][2],
+                                               default_features["extruder"]["filament_linear_adv_factor"][3]),
+                                        "Invalid number")]
                             ),
                             classes="horizontal-layout",
                             id="horizontal_filament_linear_adv_factor",
                         )
-                        fil_adv_fact.display = False
+                        fil_adv_fact.display = default_features["extruder"]["filament_linear_adv_factor"][4]
                         yield fil_adv_fact
 
                         # Other parameters. loops through features_dict to create remaining input fields.
@@ -526,19 +551,18 @@ class gui(App):
                                 word for word in category.split("_")
                             ]  # List of words in the feature's name.
                             # Used solely for proper text display purposes
+
                             placeholder_value = ""  # tmp variable used to concatenate the new title altogether.
                             for word in tmp_key_words:
                                 placeholder_value += word + " "
+
                             title_tmp = Static(
                                 f"[b]{placeholder_value.title()}",
                                 classes="label",
                                 id=f"static_{category}",
-                            )  # .title() built-in
-                            # function uppercases each starting letter.
-                            if (
-                                category != "acceleration_settings"
-                            ):  # acceleration settings is a special case as it is shown only after toggling
-                                # "enable acceleration" in advanced mode
+                            )  # .title() built-in function uppercases each starting letter.
+                            # acceleration settings is a special case as it is shown only after toggling "enable acceleration" in advanced mode
+                            if (category != "acceleration_settings"): 
                                 yield title_tmp
                             else:
                                 yield title_tmp
@@ -549,12 +573,14 @@ class gui(App):
                                         classes="feature-text",
                                         id="static_enable_acceleration",
                                     ),
-                                    Switch(value=False, id="enable_acceleration", animate= False),
+                                    Switch(value=default_features["additional_features"]["enable_acceleration"][0], 
+                                           id="enable_acceleration", 
+                                           animate= False),
                                     classes="container",
                                     id="horizontal_enable_acceleration",
                                     
                                 )
-                                enable_accel.display = False
+                                enable_accel.display = default_features["additional_features"]["enable_acceleration"][4]
                                 yield enable_accel
 
                             # Loops through each feature in a category
@@ -573,8 +599,9 @@ class gui(App):
                                         placeholder_value += f"({word})"
                                     else:
                                         placeholder_value += word + " "
+
                                 if not isinstance(
-                                    features_dict[category][feature], bool
+                                    features_dict[category][feature][0], bool
                                 ):  # non bool- features will yield an Input widget,
                                     # while bools will yield a Switch
                                     feature_text = Static(
@@ -583,26 +610,28 @@ class gui(App):
                                         id=f"static_{feature}",
                                     )
                                     feature_input_field = Input(
-                                        value=f"{features_dict[category][feature]}",
+                                        value=f"{features_dict[category][feature][0]}",
                                         placeholder=f"{placeholder_value}",
                                         id=f"{feature}",
                                         type="number",
                                         max_length=5,
                                         valid_empty=False,
+                                        validators=[
+                                            Function(
+                                                Number(features_dict[category][feature][2],
+                                                       features_dict[category][feature][3]),
+                                                "Invalid number")],
+                                        disabled=default_features[category][feature][5]
                                     )
-                                    if feature in start_as_disabled:
-                                        feature_input_field.disabled = True
                                     feature_horizontal = Horizontal(
                                         feature_text,
                                         feature_input_field,
                                         classes="horizontal-layout",
-                                        id=f"horizontal_{feature}",
+                                        id=f"horizontal_{feature}"
                                     )
-                                    if (
-                                        feature in advanced_features
-                                        or feature in accel_features
-                                    ):  # features judged too advanced for a beginner
-                                        # are by default hidden
+
+                                    if features_dict[category][feature][4] == True: # features judged too advanced for a beginner 
+                                        #are by default hidden
                                         feature_horizontal.display = False
                                     yield feature_horizontal
 
@@ -613,22 +642,18 @@ class gui(App):
                                         id=f"static_{feature}",
                                     )
                                     feature_switch_field = Switch(
-                                        value=features_dict[category][feature],
+                                        value=features_dict[category][feature][0],
                                         id=f"{feature}",
-                                        animate= False
+                                        animate= False,
+                                        disabled=default_features[category][feature][5]
                                     )
-                                    if feature in start_as_disabled:
-                                        feature_switch_field.disabled = True
                                     feature_horizontal = Horizontal(
                                         feature_text,
                                         feature_switch_field,
                                         classes="horizontal-layout",
                                         id=f"horizontal_{feature}",
                                     )
-                                    if (
-                                        feature in advanced_features
-                                        or feature in accel_features
-                                    ):
+                                    if features_dict[category][feature][4] == True:
                                         feature_horizontal.display = False
                                     yield feature_horizontal
 
@@ -640,6 +665,9 @@ class gui(App):
                         Used for active debug purposes by showing the Lua output or eventual warnings.
                         """
                         yield Static(self.featurecode, id="main-text", classes="text")
+
+
+
 
             # QUALITY TAB
             with TabPane("Quality Profiles", id="quality_tab") as quality_tab:
@@ -717,7 +745,7 @@ class gui(App):
                                     else:
                                         placeholder_value += word + " "
                                 if not isinstance(
-                                    quality_features[category][feature], bool
+                                    quality_features[category][feature][0], bool
                                 ):  # non bool- features will yield an Input widget,
                                     # while bools will yield a Switch
                                     feature_text = Static(
@@ -726,24 +754,25 @@ class gui(App):
                                         id=f"static_{feature}_pq",
                                     )
                                     feature_input_field = Input(
-                                        value=f"{quality_features[category][feature]}",
+                                        value=f"{quality_features[category][feature][0]}",
                                         placeholder=f"{placeholder_value}",
                                         id=f"{feature}_pq",
                                         type="number",
                                         max_length=5,
                                         valid_empty=False,
+                                        validators=[
+                                            Function(
+                                                Number(quality_features[category][feature][2],
+                                                       quality_features[category][feature][3]),
+                                                "Invalid number")],
+                                        disabled=quality_features[category][feature][5]
                                     )
-                                    if feature in start_as_disabled:
-                                        feature_input_field.disabled = True
                                     feature_horizontal = Horizontal(
                                         feature_text,
                                         feature_input_field,
                                         classes="horizontal-layout",
                                         id=f"horizontal_{feature}_pq",
                                     )
-                                    # if feature in advanced_features: #features judged too advanced for a beginner
-                                    #     #are by default hidden
-                                    #     feature_horizontal.display = False
                                     yield feature_horizontal
 
                                 else:  # bool features'case
@@ -753,20 +782,17 @@ class gui(App):
                                         id=f"static_{feature}_pq",
                                     )
                                     feature_switch_field = Switch(
-                                        value=quality_features[category][feature],
+                                        value=quality_features[category][feature][0],
                                         id=f"{feature}_pq",
-                                        animate= False
+                                        animate= False,
+                                        disabled=quality_features[category][feature][5]
                                     )
-                                    if feature in start_as_disabled:
-                                        feature_switch_field.disabled = True
                                     feature_horizontal = Horizontal(
                                         feature_text,
                                         feature_switch_field,
                                         classes="horizontal-layout",
                                         id=f"horizontal_{feature}_pq",
                                     )
-                                    # if feature in advanced_features:
-                                    #     feature_horizontal.display = False
                                     yield feature_horizontal
 
                         # Create button. Handled solely by its decorated function down below.
@@ -862,12 +888,17 @@ class gui(App):
                                 id="static_filament_linear_adv_factor_pm",
                             ),
                             Input(
-                                value="0.06",
+                                value=materials_features["extruder"]["filament_linear_adv_factor"][0],
                                 placeholder="filament linear advance factor",
                                 id="filament_linear_adv_factor_pm",
                                 type="number",
                                 max_length=2,
                                 valid_empty=False,
+                                validators=[
+                                    Function(
+                                        Number(materials_features["extruder"]["filament_linear_adv_factor"][2],
+                                               materials_features["extruder"]["filament_linear_adv_factor"][3]),
+                                        "Invalid number")]
                             ),
                             classes="horizontal-layout",
                             id="horizontal_filament_linear_adv_factor_pm",
@@ -909,7 +940,7 @@ class gui(App):
                                     else:
                                         placeholder_value += word + " "
                                 if not isinstance(
-                                    materials_features[category][feature], bool
+                                    materials_features[category][feature][0], bool
                                 ):  # non bool- features will yield an Input widget,
                                     # while bools will yield a Switch
                                     feature_text = Static(
@@ -918,23 +949,25 @@ class gui(App):
                                         id=f"static_{feature}_pm",
                                     )
                                     feature_input_field = Input(
-                                        value=f"{materials_features[category][feature]}",
+                                        value=f"{materials_features[category][feature][0]}",
                                         placeholder=f"{placeholder_value}",
                                         id=f"{feature}_pm",
                                         type="number",
                                         max_length=5,
                                         valid_empty=False,
+                                        validators=[
+                                            Function(
+                                                Number(materials_features[category][feature][2],
+                                                       materials_features[category][feature][3]),
+                                                "Invalid number")],
+                                        disabled=materials_features[category][feature][5]
                                     )
-                                    if feature in start_as_disabled:
-                                        feature_input_field.disabled = True
                                     feature_horizontal = Horizontal(
                                         feature_text,
                                         feature_input_field,
                                         classes="horizontal-layout",
                                         id=f"horizontal_{feature}_pm",
                                     )
-                                   
-                                   
                                     yield feature_horizontal
 
                                 else:  # bool features'case
@@ -944,12 +977,11 @@ class gui(App):
                                         id=f"static_{feature}_pm",
                                     )
                                     feature_switch_field = Switch(
-                                        value=materials_features[category][feature],
+                                        value=materials_features[category][feature][0],
                                         id=f"{feature}_pm",
-                                        animate= False
+                                        animate= False,
+                                        disabled=materials_features[category][feature][5]
                                     )
-                                    if feature in start_as_disabled:
-                                        feature_switch_field.disabled = True
                                     feature_horizontal = Horizontal(
                                         feature_text,
                                         feature_switch_field,
@@ -1098,6 +1130,7 @@ class gui(App):
                                 yield function_static
                                 yield function_area
 
+   
     @on(Switch.Changed)  # decorator called upon receiving a change in one of the yielded Switch widgets.
     # this decorator declares the following method as a message handler.
     def on_switch_changed(self, event: Switch.Changed) -> None:  # the event class gets the switch's id, value, and more.
@@ -1223,6 +1256,8 @@ class gui(App):
                 self.query('#event-text-2').first().disabled = False
             else:
                 self.query('#event-text-2').first().disabled = True
+    
+    
     @on(Select.Changed)  # handles the case of Select widgets being modified.
     def on_select_changed(self, event: Select.Changed) -> None:
         """
