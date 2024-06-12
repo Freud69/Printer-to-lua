@@ -18,15 +18,22 @@ Project done as an internship project for team MFX under 6 weeks. May resume lat
 - Generate features.lua file
 - Generate quality profiles
 - Generate materials profiles
-- Generate main printer.lua file, used by the IceSL to generate the G-code.
-- 
+- Generate main printer.lua file, used by IceSL to generate the G-code.
+
 ## Requirements
 
-requirements available in requirements.txt file. Run the following pip query inside the project's folder:
+Requirements available in requirements.txt file. Run the following pip query inside the project's folder to install all of them at once:
 
 ```bash
   pip install -r requirements.txt
 ```
+
+## Use
+To start the app, just do the following in a terminal inside the project's folder:
+```bash
+  python main.py
+```
+Files you generate will be saved in the same directory.
 ## TODOs
 
 - Include support for circular bed in printer.lua file.
