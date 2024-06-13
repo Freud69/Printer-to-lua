@@ -31,7 +31,7 @@ priming_mm_per_sec = 25
 retract_mm_per_sec = 25
  
 --layer_height
-z_layer_height_mm = 0.2s
+z_layer_height_mm = 0.2
 z_layer_height_mm_min = 0.04
 z_layer_height_mm_max = 0.36
  

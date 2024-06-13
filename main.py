@@ -1735,10 +1735,75 @@ class gui(App):
     @on(TextArea.Changed)
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         """
-        Handles the text area widgets' events.
+        Handles the text area widgets' events.        
         """
-        self.__dict__[event.text_area.id] = event.text_area.text
+
+        if event.text_area.id == "header":
+            self.header = event.text_area.text
         
+        if event.text_area.id == "footer":
+            self.footer = event.text_area.text
+
+        if event.text_area.id == "comment":
+            self.comment = event.text_area.text
+        
+        if event.text_area.id == 'layer_start':
+            self.layer_start = event.text_area.text
+        
+        if event.text_area.id == 'layer_stop':
+            self.layer_stop = event.text_area.text
+        
+        if event.text_area.id == "extruder_start":
+            self.extruder_start = event.text_area.text
+        
+        if event.text_area.id == "extruder_stop":
+            self.extruder_stop = event.text_area.text
+        
+        if event.text_area.id == "select_extruder":
+            self.select_extruder = event.text_area.text
+
+        if event.text_area.id == "swap_extruder":
+            self.swap_extruder = event.text_area.text
+        
+        if event.text_area.id == 'prime':
+            self.prime = event.text_area.text
+
+        if event.text_area.id == 'retract':
+            self.retract = event.text_area.text
+
+        if event.text_area.id == 'move_e':
+            self.move_e = event.text_area.text
+
+        if event.text_area.id == "move_xyz":
+            self.move_xyz = event.text_area.text
+
+        if event.text_area.id == "move_xyze":
+            self.move_xyze = event.text_area.text
+        
+        if event.text_area.id == "progress":
+            self.progress = event.text_area.text
+        
+        if event.text_area.id == "set_feedrate":
+            self.set_feedrate = event.text_area.text
+        
+        if event.text_area.id == "set_fan_speed":
+            self.set_fan_speed = event.text_area.text
+        
+        if event.text_area.id == "set_extruder_temperature":
+            self.set_extruder_temperature = event.text_area.text
+        
+        if event.text_area.id == "wait":
+            self.wait = event.text_area.text
+        
+        if event.text_area.id == "set_and_wait_temperature":
+            self.set_and_wait_extruder_temperature = event.text_area.text
+        
+        if event.text_area.id == "set_mixing_ratios":
+            self.set_mixing_ratios = event.text_area.text
+        
+        
+
+
 ###Output handler
 
     @on(Button.Pressed)  # handles the case of the "create" button being pressed.

@@ -368,6 +368,18 @@ function swap_extruder(ext1,ext2,x,y,z)
   --[[
     called when swapping extruder 'ext1' to 'ext2' at position x,y,z.
     ]]
+  output('\\n;swap_extruder')
+    extruder_e_swap[ext1] = extruder_e_swap[ext1] + extruder_e[ext1] - extruder_e_reset[ext1]
+
+    -- swap extruder
+    output('G92 E0.0')
+    output('T' .. to)
+    output('G92 E0.0\\n')
+
+    current_extruder = ext2
+    extruder_changed = true
+    current_frate = travel_speed_mm_per_sec * 60
+    changed_frate = true
 end
 '''
     },

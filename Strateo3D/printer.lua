@@ -45,7 +45,7 @@ function header()
     output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
     output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
     
-      output('M205 X' .. default_jerk .. ' Y' .. default_jerk .. ' ; sets XY Jerk')
+      output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
     
     output('')
 
@@ -199,6 +199,18 @@ function swap_extruder(ext1,ext2,x,y,z)
   --[[
     called when swapping extruder 'ext1' to 'ext2' at position x,y,z.
     ]]
+  output(';swap_extruder')
+    extruder_e_swap[ext1] = extruder_e_swap[ext1] + extruder_e[ext1] - extruder_e_reset[ext1]
+
+    -- swap extruder
+    output('G92 E0.0')
+    output('T' .. to)
+    output('G92 E0.0')
+
+    current_extruder = ext2
+    extruder_changed = true
+    current_frate = travel_speed_mm_per_sec * 60
+    changed_frate = true
 end
 -----------------------
 --################################################## MOVEMENTS
