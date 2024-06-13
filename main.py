@@ -25,8 +25,8 @@ from dicts.tooltips_dict import tooltips
 #list and dictionaries of general features
 from dicts.features_data import (
                             default_features, features_dict,
-                            start_as_disabled, advanced_features,
-                            accel_features, quality_features,
+                            # start_as_disabled, advanced_features,accel_features,
+                            quality_features,
                             materials_features
                             )
 from dicts.printer_data import main_variables, util_functions_text
@@ -87,13 +87,13 @@ class gui(App):
     enable_acceleration = reactive(False, always_update=True, repaint=True, layout=True)
     classic_jerk = reactive(False, always_update=True, repaint=True, layout=True)
     heated_chamber = reactive(False, always_update=True, repaint=True, layout=True)
-    volumetric_flow = reactive(str(features_dict['additional_features']['volumetric_flow']), 
+    volumetric_flow = reactive(str(features_dict['additional_features']['volumetric_flow'][0]), 
                                always_update=True, repaint=True, layout=True)
-    printing_speed = reactive(str(features_dict['printing_speeds']['print_speed_mm_per_sec']),
+    printing_speed = reactive(str(features_dict['printing_speeds']['print_speed_mm_per_sec'][0]),
                                        always_update=True, repaint=True, layout=True)
-    layer_height = reactive(str(features_dict['layer_height']['z_layer_height_mm']), 
+    layer_height = reactive(str(features_dict['layer_height']['z_layer_height_mm'][0]), 
                                     always_update=True, repaint=True, layout=True)
-    nozzle_diameter = reactive(str(default_features['extruder']['nozzle_diameter_mm_0']), 
+    nozzle_diameter = reactive(str(default_features['extruder']['nozzle_diameter_mm_0'][0]), 
                                always_update=True, repaint=True, layout=True)
     
     #custom_features
@@ -336,13 +336,16 @@ class gui(App):
                             placeholder="bed radius",
                             id="bed_radius",
                             type="number",
-                            max_length=4,
+                            max_length=6,
                             valid_empty=False,
                             validators=[
                                 Function(
-                                    Number(default_features["build_area_dimensions"]["bed_radius"][2],
-                                           default_features["build_area_dimensions"]["bed_radius"][3]),
-                                    "Invalid number")]
+                                    isNotSpaces, "empty value"
+                                ),
+                                Number(default_features["build_area_dimensions"]["bed_radius"][2],
+                                        default_features["build_area_dimensions"]["bed_radius"][3],
+                                        "Invalid number")
+                                        ]
                         )
                         bed_radius_input.disabled = default_features["build_area_dimensions"]["bed_radius"][5]
                         bed_radius_widget = Horizontal(
@@ -365,17 +368,20 @@ class gui(App):
                                 id="static_bed_size_x_mm",
                             ),
                             Input(
-                                value=default_features["build_area_dimensions"]["bed_size_x_mm"][0],
+                                value=f'{default_features["build_area_dimensions"]["bed_size_x_mm"][0]}',
                                 placeholder="bed size x mm ",
                                 id="bed_size_x_mm",
                                 type="number",
-                                max_length=4,
+                                max_length=6,
                                 valid_empty=False,
                                 validators=[
                                     Function(
-                                        Number(default_features["build_area_dimensions"]["bed_size_x_mm"][2],
-                                               default_features["build_area_dimensions"]["bed_size_x_mm"][3]),
-                                        "Invalid number")]
+                                        isNotSpaces, "empty value"
+                                    ),
+                                    Number(default_features["build_area_dimensions"]["bed_size_x_mm"][2],
+                                            default_features["build_area_dimensions"]["bed_size_x_mm"][3],
+                                            "Invalid number")
+                                            ]
                             ),
                             classes="horizontal-layout",
                         )
@@ -386,17 +392,20 @@ class gui(App):
                                 id="static_bed_size_y_mm",
                             ),
                             Input(
-                                value=default_features["build_area_dimensions"]["bed_size_y_mm"][0],
+                                value=f'{default_features["build_area_dimensions"]["bed_size_y_mm"][0]}',
                                 placeholder="bed size y mm ",
                                 id="bed_size_y_mm",
                                 type="number",
-                                max_length=4,
+                                max_length=6,
                                 valid_empty=False,
                                 validators=[
                                     Function(
-                                        Number(default_features["build_area_dimensions"]["bed_size_y_mm"][2],
-                                               default_features["build_area_dimensions"]["bed_size_y_mm"][3]),
-                                        "Invalid number")]
+                                        isNotSpaces, "empty value"
+                                    ),
+                                    Number(default_features["build_area_dimensions"]["bed_size_y_mm"][2],
+                                            default_features["build_area_dimensions"]["bed_size_y_mm"][3],
+                                            "Invalid number")
+                                            ]
                             ),
                             classes="horizontal-layout",
                         )
@@ -407,17 +416,20 @@ class gui(App):
                                 id="static_bed_size_z_mm",
                             ),
                             Input(
-                                value=default_features["build_area_dimensions"]["bed_size_z_mm"][0],
+                                value=f'{default_features["build_area_dimensions"]["bed_size_z_mm"][0]}',
                                 placeholder="bed size z mm ",
                                 id="bed_size_z_mm",
                                 type="number",
-                                max_length=4,
+                                max_length=6,
                                 valid_empty=False,
                                 validators=[
                                     Function(
-                                        Number(default_features["build_area_dimensions"]["bed_size_z_mm"][2],
-                                               default_features["build_area_dimensions"]["bed_size_z_mm"][3]),
-                                        "Invalid number")]
+                                        isNotSpaces, "empty value"
+                                    ),
+                                    Number(default_features["build_area_dimensions"]["bed_size_z_mm"][2],
+                                            default_features["build_area_dimensions"]["bed_size_z_mm"][3],
+                                            "Invalid number")
+                                            ]
                             ),
                             classes="horizontal-layout",
                         )
@@ -527,22 +539,25 @@ class gui(App):
                                 id="static_filament_linear_adv_factor",
                             ),
                             Input(
-                                value=default_features["extruder"]["filament_linear_adv_factor"][0],
+                                value=f'{default_features["extruder"]["filament_linear_adv_factor"][0]}',
                                 placeholder="filament linear advance factor",
                                 id="filament_linear_adv_factor",
                                 type="number",
-                                max_length=2,
+                                max_length=6,
                                 valid_empty=False,
                                 validators=[
                                     Function(
-                                        Number(default_features["extruder"]["filament_linear_adv_factor"][2],
-                                               default_features["extruder"]["filament_linear_adv_factor"][3]),
-                                        "Invalid number")]
+                                        isNotSpaces, "empty value"
+                                    ),
+                                    Number(default_features["extruder"]["filament_linear_adv_factor"][2],
+                                            default_features["extruder"]["filament_linear_adv_factor"][3],
+                                            "Invalid number")
+                                            ]
                             ),
                             classes="horizontal-layout",
                             id="horizontal_filament_linear_adv_factor",
                         )
-                        fil_adv_fact.display = default_features["extruder"]["filament_linear_adv_factor"][4]
+                        fil_adv_fact.display = not default_features["extruder"]["filament_linear_adv_factor"][4]
                         yield fil_adv_fact
 
                         # Other parameters. loops through features_dict to create remaining input fields.
@@ -573,14 +588,14 @@ class gui(App):
                                         classes="feature-text",
                                         id="static_enable_acceleration",
                                     ),
-                                    Switch(value=default_features["additional_features"]["enable_acceleration"][0], 
+                                    Switch(value=False, 
                                            id="enable_acceleration", 
                                            animate= False),
                                     classes="container",
                                     id="horizontal_enable_acceleration",
                                     
                                 )
-                                enable_accel.display = default_features["additional_features"]["enable_acceleration"][4]
+                                enable_accel.display = False
                                 yield enable_accel
 
                             # Loops through each feature in a category
@@ -618,10 +633,13 @@ class gui(App):
                                         valid_empty=False,
                                         validators=[
                                             Function(
-                                                Number(features_dict[category][feature][2],
-                                                       features_dict[category][feature][3]),
-                                                "Invalid number")],
-                                        disabled=default_features[category][feature][5]
+                                                isNotSpaces, "empty value"
+                                            ),
+                                            Number(features_dict[category][feature][2],
+                                                    features_dict[category][feature][3],
+                                                    "Invalid number")
+                                                    ],
+                                        disabled=features_dict[category][feature][5]
                                     )
                                     feature_horizontal = Horizontal(
                                         feature_text,
@@ -632,7 +650,7 @@ class gui(App):
 
                                     if features_dict[category][feature][4] == True: # features judged too advanced for a beginner 
                                         #are by default hidden
-                                        feature_horizontal.display = False
+                                        feature_horizontal.display = False  # hides the widget.
                                     yield feature_horizontal
 
                                 else:  # bool features'case
@@ -645,7 +663,7 @@ class gui(App):
                                         value=features_dict[category][feature][0],
                                         id=f"{feature}",
                                         animate= False,
-                                        disabled=default_features[category][feature][5]
+                                        disabled=features_dict[category][feature][5]
                                     )
                                     feature_horizontal = Horizontal(
                                         feature_text,
@@ -762,9 +780,12 @@ class gui(App):
                                         valid_empty=False,
                                         validators=[
                                             Function(
+                                        isNotSpaces, "empty value"
+                                    ),
                                                 Number(quality_features[category][feature][2],
-                                                       quality_features[category][feature][3]),
-                                                "Invalid number")],
+                                                       quality_features[category][feature][3],
+                                                       "Invalid number")
+                                                       ],
                                         disabled=quality_features[category][feature][5]
                                     )
                                     feature_horizontal = Horizontal(
@@ -881,30 +902,33 @@ class gui(App):
                             classes="horizontal-layout",
                         )
 
-                        fil_adv_fact = Horizontal(
+                        fil_adv_fact_pm = Horizontal(
                             Static(
                                 "Filament Linear Advance Factor",
                                 classes="feature-text",
                                 id="static_filament_linear_adv_factor_pm",
                             ),
                             Input(
-                                value=materials_features["extruder"]["filament_linear_adv_factor"][0],
+                                value=f'{materials_features["extruder"]["filament_linear_adv_factor"][0]}',
                                 placeholder="filament linear advance factor",
                                 id="filament_linear_adv_factor_pm",
                                 type="number",
-                                max_length=2,
+                                max_length=6,
                                 valid_empty=False,
                                 validators=[
                                     Function(
-                                        Number(materials_features["extruder"]["filament_linear_adv_factor"][2],
-                                               materials_features["extruder"]["filament_linear_adv_factor"][3]),
-                                        "Invalid number")]
+                                        isNotSpaces, "empty value"
+                                    ),
+                                    Number(materials_features["extruder"]["filament_linear_adv_factor"][2],
+                                            materials_features["extruder"]["filament_linear_adv_factor"][3],
+                                            "Invalid number")
+                                            ]
                             ),
                             classes="horizontal-layout",
-                            id="horizontal_filament_linear_adv_factor_pm",
+                            id="horizontal_qqfilament_linear_adv_factor_pm",
                         )
 
-                        yield fil_adv_fact
+                        yield fil_adv_fact_pm
 
                         # Other parameters. loops through materials_features to create remaining input fields.
                         for category in materials_features:  # category is a key
@@ -957,9 +981,12 @@ class gui(App):
                                         valid_empty=False,
                                         validators=[
                                             Function(
-                                                Number(materials_features[category][feature][2],
-                                                       materials_features[category][feature][3]),
-                                                "Invalid number")],
+                                                isNotSpaces, "empty value"
+                                            ),
+                                            Number(materials_features[category][feature][2],
+                                                    materials_features[category][feature][3],
+                                                    "Invalid number")
+                                                    ],
                                         disabled=materials_features[category][feature][5]
                                     )
                                     feature_horizontal = Horizontal(
@@ -1173,11 +1200,11 @@ class gui(App):
             self.refresh_footer()
 
             if event.switch.value == False:
-                for feature in accel_features:
+                for feature in features_dict["acceleration_settings"]:
                     self.query(f"#{feature}").first().disabled = True
                     self.query(f"#horizontal_{feature}").first().display = False
             else:
-                for feature in accel_features:
+                for feature in features_dict["acceleration_settings"]:
                     if feature not in ["default_jerk", "infill_jerk"]:
                         self.query(f"#{feature}").first().disabled = False
                     self.query(f"#horizontal_{feature}").first().display = True
@@ -1203,12 +1230,20 @@ class gui(App):
         if (event.switch.id == "advanced_mode"):# toggles advanced mode and displays hidden feature fields.
             if event.switch.value == False:
                 self.query(f"#horizontal_enable_acceleration").first().display = False
-                for feature in advanced_features:
-                    self.query(f"#horizontal_{feature}").first().display = False
+                self.query('#horizontal_filament_linear_adv_factor').first().display = False
+
+                for category in features_dict:
+                    for feature in features_dict[category]:
+                        if features_dict[category][feature][4] == True:
+                            self.query(f"#horizontal_{feature}").first().display = False
             else:
                 self.query(f"#horizontal_enable_acceleration").first().display = True
-                for feature in advanced_features:
-                    self.query(f"#horizontal_{feature}").first().display = True
+                self.query('#horizontal_filament_linear_adv_factor').first().display = True
+
+                for category in features_dict:
+                    for feature in features_dict[category]:
+                        if features_dict[category][feature][4] == True:
+                            self.query(f"#horizontal_{feature}").first().display = True
 
         if event.switch.id == "heated_chamber":
             self.heated_chamber = event.value
@@ -1551,6 +1586,14 @@ class gui(App):
         Handles the input widgets' events.
         """
 
+        if event.validation_result.is_valid == False and event.input.id != "name":
+                # error log
+                self.featurecode = ""
+                for error in event.validation_result.failure_descriptions:
+                    self.featurecode += error + "\n"
+                self.featurecode += "\nPlease fill in all the fields correctly."
+                self.query_one("#main-text").update(self.featurecode)
+
         if event.input.id == "name":
             self.name = event.value
 
@@ -1695,7 +1738,7 @@ class gui(App):
         Handles the text area widgets' events.
         """
         self.__dict__[event.text_area.id] = event.text_area.text
-
+        
 ###Output handler
 
     @on(Button.Pressed)  # handles the case of the "create" button being pressed.
@@ -1723,7 +1766,7 @@ class gui(App):
                 )
                 self.featurecode += (
                     "firmware = "
-                    + f'{self.query("#firmware").first().__getattribute__("value")}'
+                    + f'{self.query("#firmware").first().__getattribute__("value")}\n \n'
                 )
 
                 

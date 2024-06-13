@@ -1,4 +1,4 @@
---Printer functions for CR10S_Pro
+--Printer functions for Strateo3D
 --Created on 06/13/24
  
 --Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;
@@ -45,7 +45,7 @@ function header()
     output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
     output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
     
-      output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
+      output('M205 X' .. default_jerk .. ' Y' .. default_jerk .. ' ; sets XY Jerk')
     
     output('')
 
@@ -158,7 +158,8 @@ function select_extruder(extruder)
     -- hack to work around not beeing a lua global""",
 
   
-    local n = nozzle_diameter_mm_0
+    local n = nozzle_diameter_mm[extruder]
+
   
     local x_pos = 0.1
     local y_pos = 20
