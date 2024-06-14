@@ -23,6 +23,7 @@ klipper_header_dict = {
         """,
       
     'temp_setup':"""
+    output('T'.. current_extruder)
     output('START_PRINT EXTRUDER_TEMP=' .. extruder_temp_degree_c[extruders[0]] .. ' BED_TEMP=' .. bed_temp_degree_c)
         """,
 
@@ -31,6 +32,11 @@ klipper_header_dict = {
     output('SET_HEATER_TEMPERATURE HEATER=chamber TARGET=' .. chamber_temp_degree_c .. ' ; set and wait chamber temperature')
         """,
     
+    'home_all':"""
+    output('M107')
+    output('G28 ; home all without mesh bed level')
+
+        """,
     'auto_bed_leveling':"""
     --start auto bed leveling
     output('BED_MESH_CALIBRATE ; mesh bed leveling')
@@ -43,7 +49,7 @@ klipper_header_dict = {
         """,
 
     'end_header':"""
-    output('M109 S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
+    output('M109 T'.. current_extruder..' S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
 
     output('')
     --set Linear Advance k-factor
@@ -80,6 +86,17 @@ function footer()
   -- called to create the footer of the G-Code file.
 output('END_PRINT')
   """,
+
+  'home_all':"""
+
+    output('M107 ; turn off fan')
+    output('G28 X Y ; home X and Y axis')
+    output('G91')
+    output('G0 Z 10') -- move in Z to clear space between print and nozzle
+    output('G90')
+    output('M84 ; disable motors')
+    output('')
+  """,
     
   'enable_acceleration':"""
     --set limits back to original values.
@@ -88,7 +105,7 @@ output('END_PRINT')
   """,
 
   'end_footer':"""
-ends
+end
   """
   }
 
@@ -161,15 +178,13 @@ function move_xyz(x,y,z)
         output(';travel')
   ''',
 
-  'use_per_path_accel':'''
-        if use_per_path_accel then
-            output('M204 S' .. default_acc)
-        end
-    end
+  'use_per_path_accel':''' 
+        output('M204 S' .. default_acc)
   ''',
 
   'end_move_xyz':'''
-  
+    end
+
     if z == current_z then
         if changed_frate == true then
             output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y))
@@ -221,27 +236,25 @@ function move_xyze(x,y,z,e)
         elseif  path_is_shield    then output(path_type[6][p_type])
         elseif  path_is_support   then output(path_type[7][p_type])
         elseif  path_is_tower     then output(path_type[8][p_type])
+      end
     end
   ''',
 
   'use_per_path_accel':'''
 -- acceleration management
-    if use_per_path_accel then
-      if     path_is_perimeter or path_is_shell 
-            then
-              output('SET_VELOCITY_LIMIT ACCEL=' .. perimeter_acc .. ' ACCEL_TO_DECEL=' .. perimeter_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+    if     path_is_perimeter or path_is_shell 
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. perimeter_acc .. ' ACCEL_TO_DECEL=' .. perimeter_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+            
+    elseif path_is_infill                     
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. infill_acc .. ' ACCEL_TO_DECEL=' .. infill_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(infill_jerk),2) )
+            
+    elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. default_acc .. ' ACCEL_TO_DECEL=' .. default_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
               
-      elseif path_is_infill                     
-            then
-              output('SET_VELOCITY_LIMIT ACCEL=' .. infill_acc .. ' ACCEL_TO_DECEL=' .. infill_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(infill_jerk),2) )
-              
-      elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
-            then
-              output('SET_VELOCITY_LIMIT ACCEL=' .. default_acc .. ' ACCEL_TO_DECEL=' .. default_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
-              
-      end
     end
-end
 
   ''',
 
@@ -324,6 +337,26 @@ function extruder_stop()
 
 end
 """,
+
+        "select_extruder": """
+""",
+
+        "swap_extruder": """
+function swap_extruder(from,to,x,y,z)
+  output('\\n;swap_extruder')
+  extruder_e_swap[from] = extruder_e_swap[from] + extruder_e[from] - extruder_e_reset[from]
+
+  -- swap extruder
+  output('G92 E0.0')
+  output('T' .. to)
+  output('G92 E0.0\\n')
+
+  current_extruder = to
+  extruder_changed = true
+  current_frate = travel_speed_mm_per_sec * 60
+  changed_frate = true
+end
+""",
     },
     "MOVEMENTS": {
         "prime": """
@@ -374,6 +407,10 @@ function move_e(e)
       output('G1 E' .. ff(e_value))
     end
 end
+""",
+        "move_xyz": """
+""",
+                "move_xyze": """
 """,
     },
     "PROGRESS": {

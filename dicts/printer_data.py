@@ -2,7 +2,7 @@
 
 main_variables = {
     "extruder_e": 0,
-    "exruder_e_restart": 0,
+    "extruder_e_restart": 0,
     "current_z": 0.0,
     "changed_frate": False,
     "processing": False,
