@@ -2,8 +2,8 @@
 
 ###intermediate variables used to define features rescaled from others
 default_printing_speed = 60
-default_jerk = 20
-infill_jerk = 20
+default_jerk = 10
+infill_jerk = 10
 default_accel = 3000
 default_layer_height = 0.2
 default_nozzle_diameter = 0.4
@@ -96,9 +96,9 @@ features_dict = {
         "e_max_acc": (default_accel, "int", 0, 1000, True, True),
         "classic_jerk": (False, "bool", None, None, True, True),
         "default_jerk": (default_jerk, "int", 0, 1000, True, True),
-        "infill_jerk": (default_jerk, "int", 0, 1000, True, True),
+        "infill_jerk": (infill_jerk, "int", 0, 1000, True, True),
         "default_junction_deviation": (round(0.4 * (default_jerk**2 / default_accel), 4), "float", 0, 1000, True, True),
-        "perimeter_junction_deviation": (round(0.4 * (default_jerk**2 / default_accel), 4), "float", 0, 1000, True, True),
+        "perimeter_junction_deviation": (round(0.4 * (default_jerk**2 / default_accel / 2), 4), "float", 0, 1000, True, True),
         "infill_junction_deviation": (round(0.4 * (infill_jerk**2 / default_accel), 4), "float", 0, 1000, True, True),
         "travel_junction_deviation": (round(0.4 * (default_jerk**2 / default_accel), 4), "float", 0, 1000, True, True),
     },
@@ -107,6 +107,7 @@ features_dict = {
         "add_brim": (True, "bool", None, None, False, False),
         "brim_distance_to_print_mm": (2, "int", 0, 100, False, False),
         "brim_num_contours": (3, "int", 0, 100, False, False),
+        "purge_line": (True, "bool", None, None, False, False),
         "enable_z_lift": (True, "bool", None, None, False, False),
         "z_lift_mm": (1, "int", 0, 100, False, False),
         "enable_travel_straight": (True, "bool", None, None, True, False),
@@ -115,9 +116,9 @@ features_dict = {
         "extruder_swap_retract_speed_mm_per_sec": (25, "int", 0, 100, True, False),
     },
     "additional_features": {
-        "use_per_path_accel": (False, "bool", None, None, True, False),
+        "use_per_path_accel": (True, "bool", None, None, True, False),
         "volumetric_flow": (round(default_printing_speed*default_layer_height*default_nozzle_diameter, 2), "float", 0, 100, True, False),
-        "auto_bed_leveling": (False, "bool", None, None, True, False),
+        "auto_bed_leveling": (True, "bool", None, None, True, False),
         "reload_bed_mesh": (False, "bool", None, None, True, True),
     },
 }

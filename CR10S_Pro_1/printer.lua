@@ -1,14 +1,75 @@
---Printer functions for CR10S_Pro
---Created on 06/13/24
+--Printer functions for CR10S Pro 1
+--Created on 06/14/24
  
 --Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;
-firmware = 0
-output(';Layer height: ' .. round(z_layer_height_mm, 2)) 
-output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\n') 
+firmware = 2
+
  
+
+--//////////////////////////////////////////////////Util functions - mainly for unit conversions
+function round(number, decimals)
+  --[[
+    returns a rounded value of "number"
+    ]]
+  local power = 10^decimals
+  return math.floor(number * power) / power
+end
+-----------------------
+function vol_to_mass(volume, density)
+  --[[
+    converts current volume to mass.
+    Used along with the next function to approximate filament consumption."
+    ]]
+  return density * volume
+end
+-----------------------
+function e_to_mm_cube(filament_diameter, e)
+  --[[
+    Uses the filament's dimensions and extrusion width to approximate the volume (mm^3)
+    Used along with the previous function to approximate filament consumption.
+    ]]
+  local r = filament_diameter / 2
+  return (math.pi * r^2 ) * e
+end
+-----------------------
+-- get the E value (for G1 move) from a specified deposition move
+function e_from_dep(dep_length, dep_width, dep_height, extruder)
+  --[[
+    Yet to be understood
+  ]]
+  local r1 = dep_width / 2
+  local r2 = filament_diameter_mm[extruder] / 2
+  local extruded_vol = dep_length * math.pi * r1 * dep_height
+  return extruded_vol / (math.pi * r2^2)
+end
+-----------------------
+function jerk_to_junction_deviation(jerk, accel)
+  --[[
+    Converts Marlin jerk value to junction deviation
+    ]]
+  return 0.4 * ( (jerk^2) / accel )
+end
+-----------------------
+-- marlin jerk * sqrt(2) = square corner velocity
+-- scv = square corner velocity
+function scv_to_jerk(scv) 
+  --[[
+    converts klipper scv value to marlin jerk value
+    ]]
+  return math.sqrt(2) * scv
+end
+-----------------------
+function jerk_to_scv(jerk)
+  --[[
+    converts marlin jerk value to klipper scv value
+    ]]
+  return jerk/math.sqrt(2)
+end
+
+
 --//////////////////////////////////////////////////Defining main variables
 extruder_e = 0
-exruder_e_restart = 0
+extruder_e_restart = 0
 current_z = 0.0
 changed_frate = false
 processing = false
@@ -38,33 +99,50 @@ function header()
     output('G21 ; set units to millimeters')
     output('G90 ; use absolute coordinates')
     output('M82 ; extruder absolute mode') --constant
+    
         
     --set limits
-    output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
-    output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
-    output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
-    output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-    
-      output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-    
-    output('')
-
-    output('M109 R' .. extruder_temp_degree_c[extruders[0]] .. ' ; set extruder temp')
-    output('M190 S' .. bed_temp_degree_c .. ' ; wait for bed temp')
+    output('; set velocity / acceleration limits')
+    output('SET_VELOCITY_LIMIT VELOCITY=' .. (x_max_speed + y_max_speed)/2 .. ' ACCEL=' .. (x_max_acc + y_max_acc)/2 .. ' ACCEL_TO_DECEL=' .. ((x_max_acc + y_max_acc)/2)/2 .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
         
-    output('M107')
-    output('G28 ; home all without mesh bed level')
-
+    output('START_PRINT EXTRUDER_TEMP=' .. extruder_temp_degree_c[extruders[0]] .. ' BED_TEMP=' .. bed_temp_degree_c)
         
     --start auto bed leveling
-    output('G29 ; auto bed leveling')
+    output('BED_MESH_CALIBRATE ; mesh bed leveling')
     output('G0 F' .. travel_speed_mm_per_sec * 60 .. 'X0 Y0 ; back to the origin to begin the purge')
         
-    output('M109 S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
+    --purge extruder
+    output('G0 F6000 X0.100 Y20.000 Z0.300')
+    output('G92 E0')
+    output('G1 F1500 Y220.000 E18.8   ; draw 1st line')
+    output('G1 F5000 X0.400   ; move a little to the side')
+    output('G1 F1000 Y20.000 E37.6  ; draw 2nd line')
+    output('G92 E0')
+    output('; done purging extruder')
+
+    output('M109 T'.. current_extruder..' S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
 
     output('')
     --set Linear Advance k-factor
-    output('M900 K' .. filament_linear_adv_factor .. ' ; Linear/Pressure advance')
+    output('SET_PRESSURE_ADVANCE ADVANCE=' .. filament_linear_adv_factor .. ' ; Linear/Pressure advance')
+
+
+    -- additionnal informations for Klipper web API (Moonraker)
+    -- if feedback from Moonraker is implemented in the choosen web UI (Mainsail, Fluidd, Octoprint), this info will be used for gcode previewing
+    
+    output('')
+    output("; Additionnal informations for Mooraker API")
+    output("; Generated by <" .. slicer_name .. " " .. slicer_version .. ">")
+    output("; print_height_mm :\t" .. f(extent_z))
+    output("; layer_count :'\t" .. f(extent_z/z_layer_height_mm))
+    output("; filament_type : '\t" .. name_en)
+    output("; filament_name : '\t" .. name_en)
+    output("; filament_used_mm : '\t" .. f(filament_tot_length_mm[0]) )
+    -- caution! density is in g/cm3, convertion to g/mm3 needed!
+    output("; filament_used_g : '\t" .. f(vol_to_mass(e_to_mm_cube(filament_diameter_mm[0], filament_tot_length_mm[0]), filament_density/1000)) )
+    output("; estimated_print_time_s : '\t" .. time_sec)
+    output('')
+
 
     current_frate = travel_speed_mm_per_sec * 60
     changed_frate = true
@@ -72,30 +150,13 @@ function header()
 end
         -----------------------
 function footer()
-    --called to create the footer of the G-Code file.
-
-    output('')
-    output('G4 ; wait')
-    output('M104 S0 ; turn off temperature')
-    output('M140 S0 ; turn off heatbed')
-  
-
-    output('M107 ; turn off fan')
-    output('G28 X Y ; home X and Y axis')
-    output('G91')
-    output('G0 Z 10') -- move in Z to clear space between print and nozzle
-    output('G90')
-    output('M84 ; disable motors')
-    output('')
+  -- called to create the footer of the G-Code file.
+output('END_PRINT')
   
     --set limits back to original values.
-    output('M201 X' .. x_max_acc .. ' Y' .. y_max_acc .. ' Z' .. z_max_acc .. ' E' .. e_max_acc .. ' ; sets maximum accelerations, mm/sec^2')
-    output('M203 X' .. x_max_speed .. ' Y' .. y_max_speed .. ' Z' .. z_max_speed .. ' E' .. e_max_speed .. ' ; sets maximum feedrates, mm/sec')
-    output('M204 P' .. default_acc .. ' R' .. e_prime_max_acc .. ' T' .. default_acc .. ' ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2')
-    output('M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec')
-    
-      output('M205 J' .. default_junction_deviation .. ' ; sets Junction Deviation')
-    
+    output('; set velocity / acceleration limits')
+    output('SET_VELOCITY_LIMIT VELOCITY=' .. (x_max_speed + y_max_speed)/2 .. ' ACCEL=' .. (x_max_acc + y_max_acc)/2 .. ' ACCEL_TO_DECEL=' .. ((x_max_acc + y_max_acc)/2)/2 .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+  
 end
   
 
@@ -198,6 +259,18 @@ function swap_extruder(ext1,ext2,x,y,z)
   --[[
     called when swapping extruder 'ext1' to 'ext2' at position x,y,z.
     ]]
+  output('\n;swap_extruder')
+    extruder_e_swap[ext1] = extruder_e_swap[ext1] + extruder_e[ext1] - extruder_e_reset[ext1]
+
+    -- swap extruder
+    output('G92 E0.0')
+    output('T' .. ext2)
+    output('G92 E0.0\n')
+
+    current_extruder = ext2
+    extruder_changed = true
+    current_frate = travel_speed_mm_per_sec * 60
+    changed_frate = true
 end
 -----------------------
 --################################################## MOVEMENTS
@@ -254,8 +327,11 @@ function move_xyz(x,y,z)
     if processing == true then
         processing = false
         output(';travel')
+   
+        output('M204 S' .. default_acc)
   
-  
+    end
+
     if z == current_z then
         if changed_frate == true then
             output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y))
@@ -295,7 +371,24 @@ function move_xyze(x,y,z,e)
         elseif  path_is_shield    then output(path_type[6][p_type])
         elseif  path_is_support   then output(path_type[7][p_type])
         elseif  path_is_tower     then output(path_type[8][p_type])
+      end
     end
+  
+-- acceleration management
+    if     path_is_perimeter or path_is_shell 
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. perimeter_acc .. ' ACCEL_TO_DECEL=' .. perimeter_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+            
+    elseif path_is_infill                     
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. infill_acc .. ' ACCEL_TO_DECEL=' .. infill_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(infill_jerk),2) )
+            
+    elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. default_acc .. ' ACCEL_TO_DECEL=' .. default_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+              
+    end
+
   
     if z == current_z then
       if changed_frate == true then
@@ -380,65 +473,3 @@ function set_mixing_ratios(ratios)
     ]]
 end        
 -----------------------
- 
-
---//////////////////////////////////////////////////Util functions - mainly for unit conversions
-function round(number, decimals)
-  --[[
-    returns a rounded value of "number"
-    ]]
-  local power = 10^decimals
-  return math.floor(number * power) / power
-end
------------------------
-function vol_to_mass(volume, density)
-  --[[
-    converts current volume to mass.
-    Used along with the next function to approximate filament consumption."
-    ]]
-  return density * volume
-end
------------------------
-function e_to_mm_cube(filament_diameter, e)
-  --[[
-    Uses the filament's dimensions and extrusion width to approximate the volume (mm^3)
-    Used along with the previous function to approximate filament consumption.
-    ]]
-  local r = filament_diameter / 2
-  return (math.pi * r^2 ) * e
-end
------------------------
--- get the E value (for G1 move) from a specified deposition move
-function e_from_dep(dep_length, dep_width, dep_height, extruder)
-  --[[
-    Yet to be understood
-  ]]
-  local r1 = dep_width / 2
-  local r2 = filament_diameter_mm[extruder] / 2
-  local extruded_vol = dep_length * math.pi * r1 * dep_height
-  return extruded_vol / (math.pi * r2^2)
-end
------------------------
-function jerk_to_junction_deviation(jerk, accel)
-  --[[
-    Converts Marlin jerk value to junction deviation
-    ]]
-  return 0.4 * ( (jerk^2) / accel )
-end
------------------------
--- marlin jerk * sqrt(2) = square corner velocity
--- scv = square corner velocity
-function scv_to_jerk(scv) 
-  --[[
-    converts klipper scv value to marlin jerk value
-    ]]
-  return math.sqrt(2) * scv
-end
------------------------
-function jerk_to_scv(jerk)
-  --[[
-    converts marlin jerk value to klipper scv value
-    ]]
-  return jerk/math.sqrt(2)
-end
-

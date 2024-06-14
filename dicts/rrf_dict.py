@@ -26,14 +26,15 @@ rrf_header_dict = {
       
     'temp_setup':"""
     output('')
-
-    output('M109 R' .. extruder_temp_degree_c[extruders[0]] .. ' ; set extruder temp')
+    output('T'.. current_extruder)
+    output('M104 S' .. extruder_temp_degree_c[extruders[0]] .. ' ; set extruder temp')
     output('M190 S' .. bed_temp_degree_c .. ' ; wait for bed temp')
+    output('M109 T' .. current_extruder.. ' S' .. extruder_temp_degree_c[extruders[0]] .. ' ; set extruder temp')
         """,
 
     'heated_chamber':"""
     --activate heated chamber
-    output('M191 R' .. chamber_temp_degree_c .. ' ; set and wait chamber temperature')
+    output('M191 S' .. chamber_temp_degree_c .. ' ; set and wait chamber temperature')
         """,
     
     'home_all':"""
@@ -48,13 +49,25 @@ rrf_header_dict = {
     output('G0 F' .. travel_speed_mm_per_sec * 60 .. 'X0 Y0 ; back to the origin to begin the purge')
         """,
     
+    'purge_extruder': """
+    --purge extruder
+    output('T'.. current_extruder)
+    output('G0 F6000 X0.100 Y20.000 Z0.300')
+    output('G92 E0')
+    output('G1 F1500 Y220.000 E18.8   ; draw 1st line')
+    output('G1 F5000 X0.400   ; move a little to the side')
+    output('G1 F1000 Y20.000 E37.6  ; draw 2nd line')
+    output('G92 E0')
+    output('; done purging extruder')
+        """,
+
     'auto_bed_leveling_and_reload_bed_mesh':"""
     --start auto bed leveling and reload previous bed mesh
     output('G29 S1 P"heightmap.csv"; load default bed mesh')
         """,
 
     'end_header':"""
-    output('M109 S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
+    output('M109 T'.. current_extruder..' S' .. extruder_temp_degree_c[extruders[0]] .. ' ; wait for extruder temp')
 
     output('')
     --set Linear Advance k-factor
@@ -74,7 +87,7 @@ function footer()
 
     output('')
     output('G4 ; wait')
-    output('M104 S0 ; turn off temperature')
+    output('M104 T'.. current_extruder..' S0 ; turn off temperature')
     output('M140 S0 ; turn off heatbed')
   """,
 
@@ -176,14 +189,13 @@ function move_xyz(x,y,z)
   ''',
 
   'use_per_path_accel':'''
-        if use_per_path_accel then
-            output('M204 S' .. default_acc)
+        output('M204 S' .. default_acc)
         end
-    end
   ''',
 
   'end_move_xyz':'''
-  
+    end
+
     if z == current_z then
         if changed_frate == true then
             output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y))
@@ -235,32 +247,30 @@ function move_xyze(x,y,z,e)
         elseif  path_is_shield    then output(path_type[6][p_type])
         elseif  path_is_support   then output(path_type[7][p_type])
         elseif  path_is_tower     then output(path_type[8][p_type])
+      end
     end
   ''',
 
   'use_per_path_accel':'''
 -- acceleration management
-    if use_per_path_accel then
-      if     path_is_perimeter or path_is_shell 
-            then
-              output('M204 P' .. perimeter_acc)
-              output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
-              --output('M566 X' .. jerk_value*60 .. ' Y' .. jerk_value*60)
+    if     path_is_perimeter or path_is_shell 
+          then
+            output('M204 P' .. perimeter_acc)
+            output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
+            --output('M566 X' .. jerk_value*60 .. ' Y' .. jerk_value*60)
 
-      elseif path_is_infill                     
-            then
-              output('M204 P' .. infill_acc)
-              output('M205 X' .. infill_jerk .. ' Y' .. infill_jerk)
-              --output('M566 X' .. jerk_value*60 .. ' Y' .. jerk_value*60)
+    elseif path_is_infill                     
+          then
+            output('M204 P' .. infill_acc)
+            output('M205 X' .. infill_jerk .. ' Y' .. infill_jerk)
+            --output('M566 X' .. jerk_value*60 .. ' Y' .. jerk_value*60)
 
-      elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
-            then
-              output('M204 P' .. default_acc)
-              output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
-              --output('M566 X' .. default_jerk*60 .. ' Y' .. default_jerk*60)
-      end
+    elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
+          then
+            output('M204 P' .. default_acc)
+            output('M205 X' .. default_jerk .. ' Y' .. default_jerk)
+            --output('M566 X' .. default_jerk*60 .. ' Y' .. default_jerk*60)
     end
-end
 
   ''',
 
@@ -345,20 +355,28 @@ function extruder_stop()
 end
 """,
         "select_extruder": """
-function select_extruder(extruder)
---[[
-    called when setting-up the extruder "extruder". This function is called for each available extruder at 
-    the beginning of the G-Code and once for the first used extruder in the print. 
-    After this, IceSL calls "swap_extruder".
-    ]]
-    -- hack to work around not beeing a lua global""",
+    """,
+        
         "swap_extruder": """
 function swap_extruder(ext1,ext2,x,y,z)
   --[[
     called when swapping extruder 'ext1' to 'ext2' at position x,y,z.
     ]]
+  output('\\n;swap_extruder')
+    extruder_e_swap[ext1] = extruder_e_swap[ext1] + extruder_e[ext1] - extruder_e_reset[ext1]
+
+    -- swap extruder
+    output('G92 E0.0')
+    output('T' .. ext2)
+    output('G92 E0.0\\n')
+
+    current_extruder = ext2
+    extruder_changed = true
+    current_frate = travel_speed_mm_per_sec * 60
+    changed_frate = true
 end
 """,
+
     },
     "MOVEMENTS": {
         "prime": """
@@ -411,86 +429,9 @@ function move_e(e)
 end
 """,
         "move_xyz": """
-  --[[
-    called when traveling to "x,y,z".
-    ]]
-    if processing == true then
-        processing = false
-        output(';travel')
-        if use_per_path_accel then
-            output('M204 S' .. default_acc)
-        end
-    end
-  
-    if z == current_z then
-        if changed_frate == true then
-            output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y))
-            changed_frate = false
-        else
-            output('G0 X' .. f(x) .. ' Y' .. f(y))
-        end
-    else
-        if changed_frate == true then
-            output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z))
-            changed_frate = false
-        else
-            output('G0 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z))
-        end
-        current_z = z
-    end
-end
+
 """,
         "move_xyze": """
-  --[[
-    called when traveling to "x,y,z" while extruding to value "e".
-    ]]
-    extruder_e = e
-  
-    local e_value = extruder_e - extruder_e_restart
-  
-    if processing == false then
-      processing = true
-      local p_type = 1 -- default paths naming
-      if craftware_debug then p_type = 2 end
-      if      path_is_perimeter then output(path_type[1][p_type])
-      elseif  path_is_shell     then output(path_type[2][p_type])
-      elseif  path_is_infill    then output(path_type[3][p_type])
-      elseif  path_is_raft      then output(path_type[4][p_type])
-      elseif  path_is_brim      then output(path_type[5][p_type])
-      elseif  path_is_shield    then output(path_type[6][p_type])
-      elseif  path_is_support   then output(path_type[7][p_type])
-      elseif  path_is_tower     then output(path_type[8][p_type])
-    end
-  
-      -- acceleration management
-    if use_per_path_accel then
-      if     path_is_perimeter or path_is_shell 
-            then set_acceleration(perimeter_acc, default_jerk)
-      elseif path_is_infill                     
-            then set_acceleration(infill_acc, infill_jerk)
-      elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
-            then set_acceleration(default_acc, default_jerk)
-      end
-    end
-end
-  
-    if z == current_z then
-      if changed_frate == true then
-        output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
-        changed_frate = false
-      else
-        output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
-      end
-    else
-      if changed_frate == true then
-        output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z) .. ' E' .. ff(e_value))
-        changed_frate = false
-      else
-        output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z) .. ' E' .. ff(e_value))
-      end
-      current_z = z
-    end
-end
 """,
     },
     "PROGRESS": {

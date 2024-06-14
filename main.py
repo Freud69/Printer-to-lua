@@ -85,6 +85,7 @@ class gui(App):
     quality = reactive("low", always_update=True, repaint=True, layout=True)
     material = reactive("pla", always_update=True, repaint=True, layout=True)
     enable_acceleration = reactive(False, always_update=True, repaint=True, layout=True)
+    purge_line = reactive(True, always_update=True, repaint=True, layout=True)
     classic_jerk = reactive(False, always_update=True, repaint=True, layout=True)
     heated_chamber = reactive(False, always_update=True, repaint=True, layout=True)
     volumetric_flow = reactive(str(features_dict['additional_features']['volumetric_flow'][0]), 
@@ -97,9 +98,9 @@ class gui(App):
                                always_update=True, repaint=True, layout=True)
     
     #custom_features
-    auto_bed_leveling = reactive(False, always_update=True, repaint=True, layout=True)
+    auto_bed_leveling = reactive(True, always_update=True, repaint=True, layout=True)
     reload_bed_mesh = reactive(False, always_update=True, repaint=True, layout=True)
-    use_per_path_accel = reactive(False, always_update=True, repaint=True, layout=True)
+    use_per_path_accel = reactive(True, always_update=True, repaint=True, layout=True)
 
     #reactive variables for the functions in the Printer tab
     craftware_debug = reactive(main_variables["craftware_debug"], always_update=True, repaint=True, layout=True)
@@ -282,7 +283,7 @@ class gui(App):
                                 placeholder="Printer's name",
                                 id="name",
                                 type="text",
-                                max_length=64,
+                                max_length=104,
                                 valid_empty=False,
                                 validators=[Function(isNotSpaces, "empty name")],
                             ),
@@ -336,7 +337,7 @@ class gui(App):
                             placeholder="bed radius",
                             id="bed_radius",
                             type="number",
-                            max_length=6,
+                            max_length=10,
                             valid_empty=False,
                             validators=[
                                 Function(
@@ -372,7 +373,7 @@ class gui(App):
                                 placeholder="bed size x mm ",
                                 id="bed_size_x_mm",
                                 type="number",
-                                max_length=6,
+                                max_length=10,
                                 valid_empty=False,
                                 validators=[
                                     Function(
@@ -396,7 +397,7 @@ class gui(App):
                                 placeholder="bed size y mm ",
                                 id="bed_size_y_mm",
                                 type="number",
-                                max_length=6,
+                                max_length=10,
                                 valid_empty=False,
                                 validators=[
                                     Function(
@@ -420,7 +421,7 @@ class gui(App):
                                 placeholder="bed size z mm ",
                                 id="bed_size_z_mm",
                                 type="number",
-                                max_length=6,
+                                max_length=10,
                                 valid_empty=False,
                                 validators=[
                                     Function(
@@ -543,7 +544,7 @@ class gui(App):
                                 placeholder="filament linear advance factor",
                                 id="filament_linear_adv_factor",
                                 type="number",
-                                max_length=6,
+                                max_length=10,
                                 valid_empty=False,
                                 validators=[
                                     Function(
@@ -615,9 +616,7 @@ class gui(App):
                                     else:
                                         placeholder_value += word + " "
 
-                                if not isinstance(
-                                    features_dict[category][feature][0], bool
-                                ):  # non bool- features will yield an Input widget,
+                                if features_dict[category][feature][1] != 'bool':  # non bool- features will yield an Input widget,
                                     # while bools will yield a Switch
                                     feature_text = Static(
                                         f"{placeholder_value}",
@@ -629,7 +628,7 @@ class gui(App):
                                         placeholder=f"{placeholder_value}",
                                         id=f"{feature}",
                                         type="number",
-                                        max_length=5,
+                                        max_length=10,
                                         valid_empty=False,
                                         validators=[
                                             Function(
@@ -762,9 +761,7 @@ class gui(App):
                                         placeholder_value += f"({word})"
                                     else:
                                         placeholder_value += word + " "
-                                if not isinstance(
-                                    quality_features[category][feature][0], bool
-                                ):  # non bool- features will yield an Input widget,
+                                if quality_features[category][feature][1] != 'bool':  # non bool- features will yield an Input widget,
                                     # while bools will yield a Switch
                                     feature_text = Static(
                                         f"{placeholder_value}",
@@ -776,7 +773,7 @@ class gui(App):
                                         placeholder=f"{placeholder_value}",
                                         id=f"{feature}_pq",
                                         type="number",
-                                        max_length=5,
+                                        max_length=10,
                                         valid_empty=False,
                                         validators=[
                                             Function(
@@ -913,7 +910,7 @@ class gui(App):
                                 placeholder="filament linear advance factor",
                                 id="filament_linear_adv_factor_pm",
                                 type="number",
-                                max_length=6,
+                                max_length=10,
                                 valid_empty=False,
                                 validators=[
                                     Function(
@@ -963,9 +960,7 @@ class gui(App):
                                         placeholder_value += f"({word})"
                                     else:
                                         placeholder_value += word + " "
-                                if not isinstance(
-                                    materials_features[category][feature][0], bool
-                                ):  # non bool- features will yield an Input widget,
+                                if materials_features[category][feature][1] != 'bool':  # non bool- features will yield an Input widget,
                                     # while bools will yield a Switch
                                     feature_text = Static(
                                         f"{placeholder_value}",
@@ -977,7 +972,7 @@ class gui(App):
                                         placeholder=f"{placeholder_value}",
                                         id=f"{feature}_pm",
                                         type="number",
-                                        max_length=5,
+                                        max_length=10,
                                         valid_empty=False,
                                         validators=[
                                             Function(
@@ -1077,7 +1072,7 @@ class gui(App):
                                         placeholder=f"{placeholder_value}",
                                         id=f"{variable}",
                                         type="number",
-                                        max_length=5,
+                                        max_length=10,
                                         valid_empty=False,
                                     )
                                     variable_horizontal = Horizontal(
@@ -1183,6 +1178,10 @@ class gui(App):
                 self.query("#brim_distance_to_print_mm").first().disabled = False
                 self.query("#brim_num_contours").first().disabled = False
 
+        if event.switch.id == 'purge_line':
+            self.purge_line = event.value
+            self.refresh_header()
+
         if event.switch.id == "enable_z_lift":  # ditto
             if event.switch.value == False:
                 self.query("#extruder_swap_zlift_mm").first().disabled = True
@@ -1201,11 +1200,16 @@ class gui(App):
 
             if event.switch.value == False:
                 for feature in features_dict["acceleration_settings"]:
-                    self.query(f"#{feature}").first().disabled = True
+                    if feature not in ["classic_jerk", "default_jerk", "infill_jerk",
+                                        "default_junction_deviation", "perimeter_junction_deviation", 
+                                        "infill_junction_deviation", "travel_junction_deviation"]:
+                        self.query(f"#{feature}").first().disabled = True
                     self.query(f"#horizontal_{feature}").first().display = False
             else:
                 for feature in features_dict["acceleration_settings"]:
-                    if feature not in ["default_jerk", "infill_jerk"]:
+                    if feature not in ["classic_jerk", "default_jerk", "infill_jerk",
+                                        "default_junction_deviation", "perimeter_junction_deviation", 
+                                        "infill_junction_deviation", "travel_junction_deviation"]:
                         self.query(f"#{feature}").first().disabled = False
                     self.query(f"#horizontal_{feature}").first().display = True
 
@@ -1732,6 +1736,7 @@ class gui(App):
                     str(round(0.4 * (float(event.value) ** 2 / default_accel), 4)),
                 )
 
+
     @on(TextArea.Changed)
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         """
@@ -1842,7 +1847,7 @@ class gui(App):
                     "add_checkbox_setting('auto_bed_leveling', 'Auto Bed Leveling','Use G29 Auto Leveling if the machine is equipped with one (BLTouch, Pinda, capacitive sensor, etc.)')\n"
                 )
                 self.featurecode += (
-                    "add_checkbox_setting(reload_bed_mesh', 'Reload the last bed-mesh','Reload the last saved bed-mesh if available)\n"
+                    "add_checkbox_setting('reload_bed_mesh', 'Reload the last bed-mesh','Reload the last saved bed-mesh if available')\n"
                 )
                 self.featurecode += (
                     "add_checkbox_setting('use_per_path_accel', 'Uses Per-Path Acceleration', 'Manage Accelerations depending of the current path type')\n"
@@ -2151,8 +2156,7 @@ class gui(App):
                 self.printercode += ("--Created on " + datetime.now().strftime("%x") + "\n \n")
                 self.printercode += "--Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;\n"
                 self.printercode += "firmware = " + f'{self.query("#firmware").first().__getattribute__("value")}' + "\n"
-                self.printercode += ("output(';Layer height: ' .. round(z_layer_height_mm, 2)) \n")
-                self.printercode += """output(';Generated with ' .. slicer_name .. ' ' .. slicer_version .. '\\n') \n \n"""
+                self.printercode += '\n \n' + self.util_functions + '\n'
                 self.printercode += "--//////////////////////////////////////////////////Defining main variables"
 
                 for variable in main_variables:
@@ -2193,8 +2197,6 @@ path_type = {
                         self.printercode += self.__getattribute__(function)
                         self.printercode += "-----------------------"
 
-                self.printercode += '\n \n' + self.util_functions 
-
                 ## Folder creation (if it does not exist yet) and lua file dumping.
                 errorsend = "dumping"
                 name_words = self.name.split(" ")
@@ -2205,11 +2207,11 @@ path_type = {
                     else:
                         name += word
 
-                    if f"{name}" not in os.listdir():
-                        os.makedirs(f"{name}")
-                    dump_file = open(f"./{name}/printer.lua", "w")
-                    dump_file.write(self.printercode)
-                    # self.copy_to_clipboard(self.printercode)
+                if f"{name}" not in os.listdir():
+                    os.makedirs(f"{name}")
+                dump_file = open(f"./{name}/printer.lua", "w")
+                dump_file.write(self.printercode)
+                # self.copy_to_clipboard(self.printercode)
             except:
                 # if not successful, displays the following log in the right panel.
                 self.printercode = errorsend + "\nNOPE."
@@ -2235,15 +2237,18 @@ path_type = {
         
         if self.heated_chamber:
             self.header += self.header_dict['heated_chamber']
-
-        if self.firmware == 0:   
-            self.header += self.header_dict['home_all']
+  
+        self.header += self.header_dict['home_all']
 
         if self.auto_bed_leveling and not self.reload_bed_mesh:
             self.header += self.header_dict['auto_bed_leveling']
 
         elif self.auto_bed_leveling and self.reload_bed_mesh:
             self.header += self.header_dict['auto_bed_leveling_and_reload_bed_mesh']
+        
+        if self.purge_line:
+            if self.firmware != 2:
+                self.header += self.header_dict['purge_extruder']
 
         self.header += self.header_dict['end_header']
 
@@ -2260,8 +2265,8 @@ path_type = {
         if self.heated_chamber:
             self.footer += self.footer_dict['heated_chamber']
 
-        if self.firmware == 0:
-            self.footer += self.footer_dict['home_all']
+        
+        self.footer += self.footer_dict['home_all']
 
         if self.enable_acceleration:
             self.footer += self.footer_dict['enable_acceleration']
