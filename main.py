@@ -2062,10 +2062,10 @@ path_type = {
                     else:
                         name += word
 
-                    if f"{name}" not in os.listdir():
-                        os.makedirs(f"{name}")
-                    dump_file = open(f"./{name}/printer.lua", "w")
-                    dump_file.write(self.printercode)
+                if f"{name}" not in os.listdir():
+                    os.makedirs(f"{name}")
+                dump_file = open(f"./{name}/printer.lua", "w")
+                dump_file.write(self.printercode)
                     # self.copy_to_clipboard(self.printercode)
             except:
                 # if not successful, displays the following log in the right panel.
