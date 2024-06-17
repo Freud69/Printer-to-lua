@@ -53,15 +53,15 @@ This tab contains interactive code editor zones, with essential function for 'pr
 In general, the _dicts_ folder contains every single default data used by the App, all gathered in dictionaries. The 'features_data.py' file contains every feature and its default values, as well as if it is hidden or disabled on the UI on startup.
 
 To update any default value, modify the tuples/default variables in 'features_data.py' 's dictionaries. They have the following format:
-'''python
+```python
 (default_value, type, min_value, max_value, isHidden, isDisabled)
-'''
+```
 Min and max values will be used by the validators to ensure the input values are within acceptable range. Some of these values may seem redundant as min and max values also exist within the implemented variables used by _IceSl_.
 
 This specifically concerns 'printer.lua' default functions used by IceSL, with some of them being composed of many sub-entries. Those functions normally have their own dictionaries, and have, in 'main.py', a designated _reactive_ attribute that stores their value, as wella as a  _refresh_ function to update their writing in the final file. If you want to modify the order of sub-entries'writing or want to delete some of them, do not forget to also delete the line in the corresponding _refresh_ function. For example:
-'''python
+```python
 self.featurecode += 'self.header_dict['end_header']'
-'''
+```
 is the ending code of the header function.
 
 
