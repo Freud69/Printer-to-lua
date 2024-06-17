@@ -54,7 +54,7 @@ rrf_header_dict = {
     output('T'.. current_extruder)
     output('G0 F6000 X0.100 Y20.000 Z0.300')
     output('G92 E0')
-    output('G1 F1500 Y220.000 E18.8   ; draw 1st line')
+    output('G1 F1500 Y200.000 E18.8   ; draw 1st line')
     output('G1 F5000 X0.400   ; move a little to the side')
     output('G1 F1000 Y20.000 E37.6  ; draw 2nd line')
     output('G92 E0')
