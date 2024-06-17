@@ -73,7 +73,7 @@ Min and max values will be used by the validators to ensure the input values are
 
 This also specifically concerns `printer.lua` default functions used by IceSL for each firmware (in each corresponding really well named dicts), with some of them being composed of many sub-entries. Those functions normally have their own dictionaries while others are in the  firmware_function_dict_.
 
-Here is an example of a footer snipper for the Klipper firmware:
+Here is an example of a footer snippet for the Klipper firmware:
 ```python
 klipper_footer_dict = {
   'start_footer':"""
