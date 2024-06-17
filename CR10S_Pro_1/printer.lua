@@ -1,4 +1,4 @@
---Printer functions for testProfile
+--Printer functions for CR10S Pro 1
 --Created on 06/14/24
  
 --Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;
@@ -67,7 +67,6 @@ function jerk_to_scv(jerk)
 end
 
 
- 
 --//////////////////////////////////////////////////Defining main variables
 extruder_e = 0
 extruder_e_restart = 0
@@ -158,7 +157,7 @@ output('END_PRINT')
     output('; set velocity / acceleration limits')
     output('SET_VELOCITY_LIMIT VELOCITY=' .. (x_max_speed + y_max_speed)/2 .. ' ACCEL=' .. (x_max_acc + y_max_acc)/2 .. ' ACCEL_TO_DECEL=' .. ((x_max_acc + y_max_acc)/2)/2 .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
   
-ends
+end
   
 
 --################################################## COMMENT 
@@ -211,6 +210,51 @@ function extruder_stop()
 
 end
 -----------------------
+function select_extruder(extruder)
+--[[
+    called when setting-up the extruder "extruder". This function is called for each available extruder at 
+    the beginning of the G-Code and once for the first used extruder in the print. 
+    After this, IceSL calls "swap_extruder".
+    ]]
+    -- hack to work around not beeing a lua global""",
+
+  
+    local n = nozzle_diameter_mm_0
+  
+    local x_pos = 0.1
+    local y_pos = 20
+    local z_pos = 0.3
+  
+    local l1 = 200 -- length of 1st purge line
+    local l2 = 200 -- length of 2nd purge line
+  
+    local w = n * 1.2 -- width of the purge line
+  
+  
+    local e_value = 0.0
+  
+    output('\n; purge extruder')
+    output('G0 F6000 X' .. f(x_pos) .. ' Y' .. f(y_pos) ..' Z' .. f(z_pos))
+    output('G92 E0')
+  
+    y_pos = y_pos + l1
+    e_value = round(e_from_dep(l1, w, z_pos, extruder),2)
+    output('G1 F1500 Y' .. f(y_pos) .. ' E' .. e_value .. '   ; draw 1st line') -- purge start
+  
+    x_pos = x_pos + n*0.75
+    output('G1 F5000 X' .. f(x_pos) .. '   ; move a little to the side')
+  
+    y_pos = y_pos - l2
+    e_value = e_value + round(e_from_dep(l2, w, z_pos, extruder),2)
+    output('G1 F1000 Y' .. f(y_pos) .. ' E' .. e_value .. '  ; draw 2nd line') -- purge end
+    output('G92 E0')
+    output('; done purging extruder\n')
+  
+    current_extruder = extruder
+    current_frate = travel_speed_mm_per_sec * 60
+    changed_frate = true
+  end
+  -----------------------
 function swap_extruder(ext1,ext2,x,y,z)
   --[[
     called when swapping extruder 'ext1' to 'ext2' at position x,y,z.
@@ -275,6 +319,95 @@ function move_e(e)
       output('G1 E' .. ff(e_value))
     end
 end
+-----------------------
+function move_xyz(x,y,z)      
+  --[[
+    called when traveling to "x,y,z".
+    ]]
+    if processing == true then
+        processing = false
+        output(';travel')
+   
+        output('M204 S' .. default_acc)
+  
+    end
+
+    if z == current_z then
+        if changed_frate == true then
+            output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y))
+            changed_frate = false
+        else
+            output('G0 X' .. f(x) .. ' Y' .. f(y))
+        end
+    else
+        if changed_frate == true then
+            output('G0 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z))
+            changed_frate = false
+        else
+            output('G0 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z))
+        end
+        current_z = z
+    end
+end
+  -----------------------
+function move_xyze(x,y,z,e)
+  --[[
+    called when traveling to "x,y,z" while extruding to value "e".
+    ]]
+    extruder_e = e
+  
+    local e_value = extruder_e - extruder_e_restart
+  
+    if processing == false then
+        processing = true
+  
+        p_type = 2
+  
+        if      path_is_perimeter then output(path_type[1][p_type])
+        elseif  path_is_shell     then output(path_type[2][p_type])
+        elseif  path_is_infill    then output(path_type[3][p_type])
+        elseif  path_is_raft      then output(path_type[4][p_type])
+        elseif  path_is_brim      then output(path_type[5][p_type])
+        elseif  path_is_shield    then output(path_type[6][p_type])
+        elseif  path_is_support   then output(path_type[7][p_type])
+        elseif  path_is_tower     then output(path_type[8][p_type])
+      end
+    end
+  
+-- acceleration management
+    if     path_is_perimeter or path_is_shell 
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. perimeter_acc .. ' ACCEL_TO_DECEL=' .. perimeter_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+            
+    elseif path_is_infill                     
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. infill_acc .. ' ACCEL_TO_DECEL=' .. infill_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(infill_jerk),2) )
+            
+    elseif (path_is_raft or path_is_brim or path_is_shield or path_is_support or path_is_tower)
+          then
+            output('SET_VELOCITY_LIMIT ACCEL=' .. default_acc .. ' ACCEL_TO_DECEL=' .. default_acc .. ' SQUARE_CORNER_VELOCITY=' .. round(jerk_to_scv(default_jerk),2) )
+              
+    end
+
+  
+    if z == current_z then
+      if changed_frate == true then
+        output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
+        changed_frate = false
+      else
+        output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' E' .. ff(e_value))
+      end
+    else
+      if changed_frate == true then
+        output('G1 F' .. current_frate .. ' X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z) .. ' E' .. ff(e_value))
+        changed_frate = false
+      else
+        output('G1 X' .. f(x) .. ' Y' .. f(y) .. ' Z' .. ff(z) .. ' E' .. ff(e_value))
+      end
+      current_z = z
+    end
+end
+
 -----------------------
 --################################################## PROGRESS 
 function progress(percent)

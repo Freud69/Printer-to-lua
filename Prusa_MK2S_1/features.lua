@@ -1,8 +1,8 @@
---Custom profile for testProfile
+--Custom profile for Prusa MK2S
 --Created on 06/14/24
  
 --Firmware: 0 = Marlin; 1 = RRF; 2 = Klipper;
-firmware = 2
+firmware = 0
  
 --Additional features: 
 add_checkbox_setting('auto_bed_leveling', 'Auto Bed Leveling','Use G29 Auto Leveling if the machine is equipped with one (BLTouch, Pinda, capacitive sensor, etc.)')
@@ -15,20 +15,20 @@ add_setting('volumetric_flow', 'Volumetric Flow', 0, 20, 'Product of printing sp
 --build_area_dimensions
 bed_circular = false
 --bed_radius = 155
-bed_size_x_mm = 310.0
-bed_size_y_mm = 310.0
-bed_size_z_mm = 340
+bed_size_x_mm = 250
+bed_size_y_mm = 210
+bed_size_z_mm = 200
  
 --extruder
 extruder_count = 1
 nozzle_diameter_mm_0 = 0.4
 filament_diameter_mm_0 = 1.75
-filament_linear_adv_factor = 0.06
+filament_linear_adv_factor = 0.03
  
 --retraction_settings
 filament_priming_mm = 0.8
-priming_mm_per_sec = 25
-retract_mm_per_sec = 25
+priming_mm_per_sec = 35
+retract_mm_per_sec = 35
  
 --layer_height
 z_layer_height_mm = 0.2
@@ -38,7 +38,7 @@ z_layer_height_mm_max = 0.36
 --printing_temperatures
 extruder_temp_degree_c = 210
 extruder_temp_degree_c_min = 150
-extruder_temp_degree_c_max = 250
+extruder_temp_degree_c_max = 270
 bed_temp_degree_c = 60
 bed_temp_degree_c_min = 0
 bed_temp_degree_c_max = 120
@@ -49,17 +49,17 @@ heated_chamber = false
  
 --printing_speeds
 print_speed_mm_per_sec = 60
-print_speed_mm_per_sec_min = 20.0
-print_speed_mm_per_sec_max = 210.0
+print_speed_mm_per_sec_min = 5
+print_speed_mm_per_sec_max = 120
 perimeter_print_speed_mm_per_sec = 45.0
-perimeter_print_speed_mm_per_sec_min = 20.0
-perimeter_print_speed_mm_per_sec_max = 168.0
+perimeter_print_speed_mm_per_sec_min = 5
+perimeter_print_speed_mm_per_sec_max = 80
 cover_print_speed_mm_per_sec = 45.0
-cover_print_speed_mm_per_sec_min = 20.0
-cover_print_speed_mm_per_sec_max = 168.0
+cover_print_speed_mm_per_sec_min = 5
+cover_print_speed_mm_per_sec_max = 80
 first_layer_print_speed_mm_per_sec = 20.0
 first_layer_print_speed_mm_per_sec_min = 5
-first_layer_print_speed_mm_per_sec_max = 168.0
+first_layer_print_speed_mm_per_sec_max = 50
 travel_speed_mm_per_sec = 180.0
 travel_speed_mm_per_sec_min = 50
 travel_speed_mm_per_sec_max = 500
@@ -67,17 +67,17 @@ travel_speed_mm_per_sec_max = 500
 --acceleration_settings
 x_max_speed = 500
 y_max_speed = 500
-z_max_speed = 30
-e_max_speed = 100
-default_acc = 3000
+z_max_speed = 12
+e_max_speed = 120
+default_acc = 1000
 e_prime_max_acc = 1500
-perimeter_acc = 1500
-infill_acc = 3000
-x_max_acc = 3000
-y_max_acc = 3000
-z_max_acc = 75
-e_max_acc = 3000
---classic_jerk = true
+perimeter_acc = 800
+infill_acc = 2000
+x_max_acc = 9000
+y_max_acc = 9000
+z_max_acc = 500
+e_max_acc = 2000
+classic_jerk = true
 default_jerk = 10
 infill_jerk = 10
 --default_junction_deviation = 0.0133
@@ -102,4 +102,4 @@ enable_travel_straight = false
 use_per_path_accel = true
 volumetric_flow = 4.8
 auto_bed_leveling = true
-reload_bed_mesh = false
+reload_bed_mesh = true
